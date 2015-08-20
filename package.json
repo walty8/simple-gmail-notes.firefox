@@ -1,0 +1,13 @@
+{
+  "title": "Simple Gmail Notes2",
+  "name": "simple-gmail-notes",
+  "version": "0.0.1",
+  "description": "Add notes to Gmail.",
+  "main": "index.js",
+  "author": "Walty Yeung",
+  "engines": {
+    "firefox": ">=38.0a1",
+    "fennec": ">=38.0a1"
+  },
+  "license": "GPLv3"
+}
