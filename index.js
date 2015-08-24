@@ -50,7 +50,12 @@ function initialize(sender, messageId){
 
     request.get();
 
-    /*
+
+}
+
+function loginGoogleDrive(sender, messageId)
+{
+
     var calls = {
       userAuthorizationURL: "https://accounts.google.com/o/oauth2/auth"
     };
@@ -83,8 +88,6 @@ function initialize(sender, messageId){
     var handler = OAuthConsumer.getAuthorizer(p, testCallback);
     console.log("@71, walty test");
     handler.startAuthentication();
-    */
-
 }
 
 function setupListeners(worker, request){
@@ -96,8 +99,12 @@ function setupListeners(worker, request){
       console.log("@118", request);
       initialize(sender, request.messageId);
       break;
+    case "login":
+      loginGoogleDrive(worker, request.messageId);
+      break;
+
     default:
-      console.log("unkown request", request);
+      console.log("unknown background request", request);
       break;
   }
 
