@@ -1,8 +1,8 @@
 {
   "title": "Simple Gmail Notes",
   "name": "simple-gmail-notes",
-  "version": "0.0.2",
-  "description": "Add notes to Gmail2.",
+  "version": "0.0.1",
+  "description": "Add notes to Gmail.",
   "main": "index.js",
   "author": "Walty Yeung",
   "engines": {
@@ -11,12 +11,6 @@
   },
   "license": "GPLv3",
   "dependencies": {
-    "jquery1-7-1": "^1.0.0",
     "oauthorizer": "^0.1.5"
-  },
-
-"permissions": {
-    "cross-domain-content": ["https://accounts.google.com/", "https://www.googleapis.com/"]
-}
-
+  }
 }

@@ -1,4 +1,7 @@
 console.log("walty test@1@index.js");
+var OAuthConsumer = require("oauthorizer/lib/oauthconsumer.js").OAuthConsumer;
+
+console.log("@2, OAuthConsumer", OAuthConsumer);
 
 /*
 var self = require('sdk/self');
@@ -33,5 +36,5 @@ pageMod.PageMod({
 function sendUrl(worker) {
   var dataurl = self.data.url("jquery-1.10.2.min.js");
   dataurl = dataurl.substring(0, dataurl.lastIndexOf('/')); 
-  worker.port.emit("myMessage", dataurl);
+  worker.port.emit("initPage", dataurl);
 }

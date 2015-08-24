@@ -1,4 +1,4 @@
-console.log("@1@init_main");
+console.log("@1@page.js");
 /*
  * Simple Gmail Notes 
  * https://github.com/walty8

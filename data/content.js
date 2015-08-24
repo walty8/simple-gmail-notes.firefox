@@ -140,7 +140,7 @@ function setupPage(dataurl){
      (document.head || document.documentElement).appendChild(g);
 
      var s = document.createElement('script');
-     s.src = dataurl+'/init_main.js';
+     s.src = dataurl+'/page.js';
      (document.head || document.documentElement).appendChild(s);
   }
 
@@ -235,7 +235,7 @@ window.addEventListener('message', function(event) {
 }
 
 
-self.port.on("myMessage", function handleMyMessage(dataurl) {
+self.port.on("initPage", function handleMyMessage(dataurl) {
   setupPage(dataurl);
   setupListeners();
 });
