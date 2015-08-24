@@ -1,5 +1,77 @@
 console.log("@walty@1@content.js");
 
+function disableEdit(retryCount)
+{
+  if(retryCount == undefined)
+      retryCount = 20;
+
+  $(".sgn_input").prop("disabled", true);
+//  $("#sgn_input").hide();
+ // $("#sgn_padding").hide();
+
+  if(!$(".sgn_input").is(":disabled") || $(".sgn_padding").is(":visible")){  //keep trying until it's visible
+    console.log("retry disable edit");
+    retryCount = retryCount - 1;
+    if(retryCount > 0 )
+        setTimeout(disableEdit, 100, retryCount);
+  }
+}
+
+
+function enableEdit(retryCount)
+{
+  if(retryCount == undefined)
+      retryCount = 20;
+
+  $(".sgn_input").prop("disabled", false);
+  //$("#sgn_input").show();
+//  $("#sgn_padding").hide();
+
+  if($(".sgn_input").is(":disabled")){  //keep trying until it's visible
+    console.log("retry enable edit");
+    retryCount = retryCount - 1;
+    if(retryCount > 0 )
+        setTimeout(enableEdit, 100, retryCount);
+  }
+}
+
+function showLoginPrompt(retryCount){
+  if(retryCount == undefined)
+      retryCount = 20;
+
+  $(".sgn_prompt_login").show();
+  $(".sgn_prompt_logout").hide();
+  $(".sgn_padding").hide();
+  console.log("@34, show login", $(".sgn_prompt_login").is(":visible"));
+  if(!$(".sgn_prompt_login").is(":visible")){  //keep trying until it's visible
+    console.log("retry show prompt login");
+    retryCount = retryCount - 1;
+    if(retryCount > 0 )
+        setTimeout(showLoginPrompt, 100, retryCount);
+  }
+}
+
+function showLogoutPrompt(email, retryCount){
+  if(retryCount == undefined)
+      retryCount = 20;
+
+  $(".sgn_prompt_logout").show();
+  $(".sgn_prompt_login").hide();
+  $(".sgn_padding").hide();
+  $(".sgn_error").hide();
+
+  if(email)
+    $(".sgn_prompt_logout").find(".sgn_user").text(email);
+	//enableEdit();
+
+  if(!$(".sgn_prompt_logout").is(":visible")){  //keep trying until it's visible
+    console.log("retry show prompt");
+    retryCount = retryCount - 1;
+    if(retryCount > 0 )
+        setTimeout(showLogoutPrompt, 100, email, retryCount);
+  }
+}
+
 var gEmailReg = /([\w-\.]+)@((?:[\w]+\.)+)([a-zA-Z]{2,4})/g;
 var gCurrentGDriveNoteId = "";
 var gCurrentGDriveFolderId = "";
@@ -240,4 +312,29 @@ self.port.on("initPage", function handleMyMessage(dataurl) {
   setupListeners();
 });
 
+self.port.on("SGN_background", function(request){
+  console.log("@244", request);
+      switch(request.action){
+        case "disable_edit":
+            disableEdit();
+            break;
+
+        case "show_log_in_prompt":
+          console.log("@20, show login");
+          showLoginPrompt();
+          disableEdit();
+          break;
+
+        default:
+          console.log("unknown background request", request);
+          break;
+      }
+
+})
+
+function sendMessage(messageObj)
+{
+  console.log("@240, send message", messageObj);
+  self.port.emit("SGN_content", messageObj);
+}
 console.log("@28");
