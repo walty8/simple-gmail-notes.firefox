@@ -1,5 +1,8 @@
 console.log("walty test@1@index.js");
+
+var Request = require("sdk/request").Request;
 var OAuthConsumer = require("oauthorizer/lib/oauthconsumer.js").OAuthConsumer;
+
 
 console.log("@2, OAuthConsumer", OAuthConsumer);
 
