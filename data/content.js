@@ -319,10 +319,45 @@ self.port.on("SGN_background", function(request){
             disableEdit();
             break;
 
+        case "enable_edit":
+            enableEdit();
+            showLogoutPrompt(request.gdriveEmail)
+            break;
+
+        case "show_log_out_prompt":
+          showLogoutPrompt();
+          break;
+
         case "show_log_in_prompt":
           console.log("@20, show login");
           showLoginPrompt();
           disableEdit();
+          break;
+
+        case "show_error":
+          var errorMessage = request.message;
+          console.log("Error in response:", errorMessage);
+          var date = new Date();
+          var timestamp = date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
+          //alert(errorMessage);
+          $(".sgn_error_timestamp").text("(" +  timestamp + ")");
+          $(".sgn_error").show();
+          break;
+
+        case "update_user":
+          $(".sgn_user").text(request.email);
+          break;
+
+        case "update_content":
+          gPreviousContent = request.content;
+          $(".sgn_input").val(request.content);
+          showLogoutPrompt(request.email);
+					break;
+
+        case "update_gdrive_note_info":
+          console.log("@166", request.gdriveFolderId, request.gdriveFolderId);
+          gCurrentGDriveFolderId = request.gdriveFolderId;
+          gCurrentGDriveNoteId = request.gdriveNoteId;
           break;
 
         default:
