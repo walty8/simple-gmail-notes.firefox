@@ -5,8 +5,10 @@ var OAuthConsumer = require("oauthorizer/lib/oauthconsumer.js").OAuthConsumer;
 var ss = require("sdk/simple-storage");
 var self = require("sdk/self");
 var pageMod = require("sdk/page-mod");
+const { atob, btoa } = require("chrome").Cu.import("resource://gre/modules/Services.jsm", {});
 
-
+console.log("@2, OAuthConsumer", OAuthConsumer);
+console.log("@3, btoa", btoa);
 //The refresh token, access token and email for google drive are stored in
 //local storage. Different gmails may have different sets of storage.
 function setStorage(email, key, value) 
@@ -29,7 +31,6 @@ function getStorage(email, key)
   console.log("@20, gets storage", email, key, value);
   return value;
 }
-console.log("@2, OAuthConsumer", OAuthConsumer);
 
 /*
 var self = require('sdk/self');
@@ -68,8 +69,127 @@ function initialize(sender, messageId){
 }
 */
 
-function searchMessage(sender, messageId){  //walty temp
-  console.log("searching message", messageId);
+//it should be executed after valid token checking
+function setupNotesFolder(sender){
+  var email = sender.email;
+  sendAjax({
+        type: "POST",
+        dataType: 'json',
+        contentType: "application/json",
+        headers: {
+            "Authorization": "Bearer " + getStorage(email, "access_token")
+        },
+        data: JSON.stringify({
+              "title":"_SIMPLE_GMAIL_NOTES_",
+              "parents": [{"id":"root"}],
+              "mimeType": "application/vnd.google-apps.folder"
+        }),
+        url: "https://www.googleapis.com/drive/v2/files",
+       success: function(data){
+         var gdriveFolderId = data.id;
+          sendMessage(sender, {action:"update_gdrive_note_info", 
+              gdriveNoteId:"", gdriveFolderId:gdriveFolderId});
+
+          sendMessage(sender, {action:"enable_edit", gdriveEmail:getStorage(email, "gdrive_email")});  //ready for write new message
+
+         console.log("@276", data);
+       }
+    })
+
+}
+
+function loadMessage(sender, gdriveNoteId){
+  var email = sender.email;
+	sendAjax({
+		type:"GET",
+		headers: {
+				"Authorization": "Bearer " + getStorage(email, "access_token")
+		},
+		url: "https://www.googleapis.com/drive/v2/files/"
+                    + gdriveNoteId + "?alt=media",
+		success: function(data) {
+			console.log("@268", data);
+			sendMessage(sender, {action:"update_content", content:data});
+      sendMessage(sender, {action:"enable_edit", gdriveEmail:getStorage(email, "gdrive_email")});  //ready for write new message
+		},
+		error: function(data){
+			sendMessage(sender, {action:"show_error", 
+                message:"Faild load message, error: " + JSON.stringify(data)});
+		}
+	});
+}
+
+//list the files created by this app only (as restricted by permission)
+function searchMessage(sender, messageId){
+  var email=sender.email;
+	executeIfValidToken(sender, function(data){
+		sendAjax({
+			type:"GET",
+			dataType: 'json',
+			contentType: "application/json",
+			headers: {
+					"Authorization": "Bearer " + getStorage(email, "access_token")
+			},
+			url: "https://www.googleapis.com/drive/v2/files",
+			success: function(data){
+				console.log("@245", data);
+				var gdriveFolderId = "";
+				var gdriveNoteId = "";
+
+				//first pass, get folder id for gmail notes
+				for(var i=0; i<data.items.length; i++){
+					var currentItem = data.items[i];
+					if(currentItem.title == "_SIMPLE_GMAIL_NOTES_" 
+                        && currentItem.parents[0].isRoot){
+						//found the root folder
+						gdriveFolderId = currentItem.id;
+						break;
+					}
+				}
+
+				if(!gdriveFolderId){
+					setupNotesFolder(sender);
+				}
+				else{
+					//second pass find the document
+					//var messageId = getStorage(email, "message_id");
+					console.log("@277", messageId);
+					for(var i=0; i<data.items.length; i++){
+						var currentItem = data.items[i];
+            //console.log("@330", currentItem.title, messageId, currentItem.parents[0].id, gdriveFolderId);
+            //console.log("@325", currentItem == messageId);
+            //console.log("@325", currentItem.parents[0].id == gdriveFolderId);
+						if(currentItem.title == messageId 
+                            && currentItem.parents[0].id == gdriveFolderId){
+							gdriveNoteId = currentItem.id;
+              break;
+						}
+					}
+
+          console.log("@330", gdriveNoteId);
+
+          sendMessage(sender, {action:"update_gdrive_note_info", 
+              gdriveNoteId:gdriveNoteId, gdriveFolderId:gdriveFolderId});
+
+          if(gdriveNoteId){
+            loadMessage(sender, gdriveNoteId);
+          }
+          else{
+            sendMessage(sender, {action:"enable_edit", gdriveEmail:getStorage(email, "gdrive_email")});  //ready for write new message
+          }
+				}
+
+				//setStorage(email, "folder_id", gdriveFolderId);
+
+                //if not found, an empty value needs to be set
+				//setStorage(email, "note_id", gdriveNoteId);
+			},
+			error:function(data){
+				showRefreshTokenError(email, JSON.stringify(data));
+			}
+		
+		});
+	});
 }
 
 function logoutGoogleDrive(sender){
@@ -262,22 +382,81 @@ function loginGoogleDrive(sender, messageId) {
     handler.startAuthentication();
 }
 
+//post message to google drive
+//reference: https://developers.google.com/drive/web/quickstart/quickstart-js
+function postNote(sender, messageId, gdriveFolderId, gdriveNoteId, content){
+  var email = sender.email;
+	console.log("@34, post content", content);
+	console.log("@32, ", gdriveFolderId);
+
+	executeIfValidToken(sender, function(data){
+		var uploadUrl =  "https://www.googleapis.com/upload/drive/v2/files";
+		var methodType = "POST"
+
+		if(gdriveNoteId){	//update existing one
+			uploadUrl += "/" + gdriveNoteId
+			methodType = "PUT";
+		}
+
+		var metadata = { title:messageId, parents:[{"id":gdriveFolderId}] };
+		var boundary = "-------314159265358979323846";
+		var contentType = "text/plain";
+		var delimiter = "\r\n--" + boundary + "\r\n";
+		var close_delim = "\r\n--" + boundary + "--";
+		var base64Data = btoa(unescape(encodeURIComponent(content)));
+		var multipartRequestBody =
+              delimiter +
+              'Content-Type: application/json\r\n\r\n' +
+              JSON.stringify(metadata) +
+              delimiter +
+              'Content-Type: ' + contentType + '\r\n' +
+              'Content-Transfer-Encoding: base64\r\n' +
+              '\r\n' +
+              base64Data +
+              close_delim;
+		
+		
+		sendAjax({
+			type:methodType,
+			url:uploadUrl + "?uploadType=multipart",
+			headers: {
+					"Authorization": "Bearer " + getStorage(email, "access_token"),
+					"Content-Type": "multipart/related; boundary=\"" 
+                                                + boundary + "\""
+			},
+			data: multipartRequestBody,
+			success: function(data){
+				console.log("message posted successfully");
+			},
+			error: function(data){
+				sendMessage(sender, {action:"show_error", 
+                    message:"Faild post message, error: " 
+                        + JSON.stringify(data)});
+		 }
+		});
+	});
+}
+
 function setupListeners(worker, request){
   var email = request.email;
   var sender = {worker, email}
 
   switch (request.action){
-    case "initialize":
-      console.log("@118", request);
-      initialize(sender, request.messageId);
-      break;
-    case "login":
-      loginGoogleDrive(sender, request.messageId);
-      break;
     case "logout":
       logoutGoogleDrive(sender);
       break;
+    case "reconnect":
+    case "login":
+      loginGoogleDrive(sender, request.messageId);
+      break;
+    case "post_note":
+      postNote(sender, request.messageId, 
+              request.gdriveFolderId, request.gdriveNoteId, request.content);
+      break;
 
+    case "initialize":
+      initialize(sender, request.messageId);
+      break;
     default:
       console.log("unknown request to background", request);
       break;
@@ -310,23 +489,29 @@ function sendAjax(ajaxConfig) {
     url: ajaxConfig.url,
     contentType: ajaxConfig.contentType,
     content: ajaxConfig.data,
+    headers: ajaxConfig.headers,
     onComplete: function(response){
+      var data = response.json;
+      if(!data)
+        data = response.text;
+
+      console.log("@205, ajax complete", response.status, ajaxConfig.url, response.text);
+
       if(ajaxConfig.complete){
-        console.log("@205, ajax complete", response.status, ajaxConfig.url, response.text);
-        ajaxConfig.complete(response.json);
+        ajaxConfig.complete(data);
 
       }
 
       if(response.status >= 400){ //got error
         if(ajaxConfig.error){
           console.log("@205, ajax error", response.status, ajaxConfig.url, response.text);
-          ajaxConfig.error(response.json);
+          ajaxConfig.error(data);
         }
       }
       else{ //success
         if(ajaxConfig.success){
           console.log("@211, ajax success", ajaxConfig.url, response.text);
-          ajaxConfig.success(response.json);
+          ajaxConfig.success(data);
         }
       }
 
