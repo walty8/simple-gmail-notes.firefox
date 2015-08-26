@@ -185,7 +185,7 @@ function searchMessage(sender, messageId){
 				//setStorage(email, "note_id", gdriveNoteId);
 			},
 			error:function(data){
-				showRefreshTokenError(email, JSON.stringify(data));
+				showRefreshTokenError(sender, JSON.stringify(data));
 			}
 		
 		});
@@ -270,7 +270,7 @@ function executeIfValidToken(sender, command){
         },
         error:function(){
           //the refresh token is not valid somehow
-          showRefreshTokenError(email, JSON.stringify(data));
+          showRefreshTokenError(sender, JSON.stringify(data));
         }
       });
     }
@@ -480,8 +480,16 @@ function sendMessage(sender, message) {
   sender.worker.port.emit("SGN_background", message); 
 }
 
-function showRefreshTokenError(sender, message) {
-  console.log("@196, token error", message);
+function showRefreshTokenError(sender, error){
+  var email = sender.email;
+  logoutGoogleDrive(sender);
+
+  errorMessage = "Error connecting to Google Drive. Please try to connect again. \n" +
+                    "If error persists, you may manually <a href='https://accounts.google.com/b/0/IssuedAuthSubTokens'>revoke</a> previous tokens.\n"
+             
+  //sendMessage({action:"show_log_out_prompt"});
+  //sendMessage({action:"disable_edit"});
+  sendMessage(sender, {action:"show_error", message: errorMessage});
 }
 
 function sendAjax(ajaxConfig) {
