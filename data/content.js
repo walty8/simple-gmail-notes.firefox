@@ -1,16 +1,23 @@
 console.log("@walty@1@content.js");
 
+//http://stackoverflow.com/questions/1215392/how-to-quickly-and-conveniently-disable-all-console-log-statements-in-my-code
+var DEBUG = true;
+function debugLog()
+{
+  if ( DEBUG ) {
+      console.log.apply(this, arguments);
+  }
+}
+
 function disableEdit(retryCount)
 {
   if(retryCount == undefined)
       retryCount = 20;
 
   $(".sgn_input").prop("disabled", true);
-//  $("#sgn_input").hide();
- // $("#sgn_padding").hide();
 
   if(!$(".sgn_input").is(":disabled") || $(".sgn_padding").is(":visible")){  //keep trying until it's visible
-    console.log("retry disable edit");
+    debugLog("retry disable edit");
     retryCount = retryCount - 1;
     if(retryCount > 0 )
         setTimeout(disableEdit, 100, retryCount);
@@ -28,7 +35,7 @@ function enableEdit(retryCount)
 //  $("#sgn_padding").hide();
 
   if($(".sgn_input").is(":disabled")){  //keep trying until it's visible
-    console.log("retry enable edit");
+    debugLog("retry enable edit");
     retryCount = retryCount - 1;
     if(retryCount > 0 )
         setTimeout(enableEdit, 100, retryCount);
@@ -42,9 +49,9 @@ function showLoginPrompt(retryCount){
   $(".sgn_prompt_login").show();
   $(".sgn_prompt_logout").hide();
   $(".sgn_padding").hide();
-  console.log("@34, show login", $(".sgn_prompt_login").is(":visible"));
+  debugLog("@34, show login", $(".sgn_prompt_login").is(":visible"));
   if(!$(".sgn_prompt_login").is(":visible")){  //keep trying until it's visible
-    console.log("retry show prompt login");
+    debugLog("retry show prompt login");
     retryCount = retryCount - 1;
     if(retryCount > 0 )
         setTimeout(showLoginPrompt, 100, retryCount);
@@ -65,7 +72,7 @@ function showLogoutPrompt(email, retryCount){
 	//enableEdit();
 
   if(!$(".sgn_prompt_logout").is(":visible")){  //keep trying until it's visible
-    console.log("retry show prompt");
+    debugLog("retry show prompt");
     retryCount = retryCount - 1;
     if(retryCount > 0 )
         setTimeout(showLogoutPrompt, 100, email, retryCount);
@@ -78,14 +85,14 @@ var gCurrentGDriveFolderId = "";
 var gPreviousContent = "";
 
 function setupNotes(email, messageId){
-  console.log("@8, start to set up notes:");
+  debugLog("@8, start to set up notes:");
   //var email = gmail.get.user_email();
 
-  console.log("@45", email);
-  console.log("@15", $(".sgn_input").length);
+  debugLog("@45", email);
+  debugLog("@15", $(".sgn_input").length);
 
   if($(".sgn_input").length){
-    //console.log("give up the set up");
+    //debugLog("give up the set up");
     //return;
   }
 
@@ -105,7 +112,7 @@ function setupNotes(email, messageId){
     //var gdriveNoteId = $("#sgn_gdrive_note_id").val();
     //var gdriveFolderId = $("#sgn_gdrive_folder_id").val();
     var content = $(this).val();
-    //console.log("@55", gdriveFolderId, gdriveNoteId);
+    //debugLog("@55", gdriveFolderId, gdriveNoteId);
     if(gPreviousContent != content){
       sendMessage({action:"post_note", email:email, messageId:messageId, 
             gdriveNoteId:gCurrentGDriveNoteId, gdriveFolderId:gCurrentGDriveFolderId, content:content});
@@ -165,7 +172,7 @@ function setupNotes(email, messageId){
 
     var classList =$(this).attr('class').split(/\s+/);
 
-    console.log("@172", classList);
+    debugLog("@172", classList);
     $.each(classList, function(index, item){
         if(item != 'sgn_action'){
             var action = item.substring(4);   //remove the sgn_ prefix
@@ -176,9 +183,9 @@ function setupNotes(email, messageId){
   });
 
   //load initial message
-  console.log("@102");
+  debugLog("@102");
   sendMessage({action:"initialize", email: email, messageId:messageId});
-  console.log("@104");
+  debugLog("@104");
 
   //auto-save every 5 seconds, change detection is done by backend
   /*
@@ -195,7 +202,7 @@ function setupNotes(email, messageId){
 
 function sendMessage(object)
 {
-  console.log("@125, send message", object);
+  debugLog("@125, send message", object);
   return;
 
 }
@@ -221,85 +228,12 @@ function setupPage(dataurl){
 
 
 function setupListeners(){
-  /*
-  chrome.runtime.onMessage.addListener(
-    function(request, sender, sendResponse) {
-      console.log(sender.tab ?
-        "from a content script:" + sender.tab.url :
-        "from the extension");
-      console.log("@14, handle request", request);
-      switch(request.action){
-        case "disable_edit":
-            disableEdit();
-            break;
-        case "enable_edit":
-            enableEdit();
-            showLogoutPrompt(request.gdriveEmail)
-            break;
-        case "show_log_out_prompt":
-          showLogoutPrompt();
-          break;
-        case "show_log_in_prompt":
-          console.log("@20, show login");
-          showLoginPrompt();
-          disableEdit();
-          break;
-        case "show_error":
-          var errorMessage = request.message;
-          console.log("Error in response:", errorMessage);
-          var date = new Date();
-          var timestamp = date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
-          //alert(errorMessage);
-          $(".sgn_error_timestamp").text("(" +  timestamp + ")");
-          $(".sgn_error").show();
-          break;
-        case "update_user":
-          $(".sgn_user").text(request.email);
-          break;
-        case "update_content":
-          gPreviousContent = request.content;
-          $(".sgn_input").val(request.content);
-          showLogoutPrompt(request.email);
-					break;
-        case "update_gdrive_note_info":
-          console.log("@166", request.gdriveFolderId, request.gdriveFolderId);
-          gCurrentGDriveFolderId = request.gdriveFolderId;
-          gCurrentGDriveNoteId = request.gdriveNoteId;
-          break;
-      }
-
-    }
-
-  )
-
-    /*
-  window.addEventListener('message', function(event) {
-      console.log('content_script.js got message:', event);
-      // check event.type and event.data
-  });
-  */
-
-  /*
-  document.addEventListener('SGN_background_event', function(e) {
-      var detail = e.detail
-      console.log("@190", detail);
-      //setupNotes(de);
-  });
-  */
-
-  /*
-window.addEventListener('message', function(event) {
-    console.log('content_script.js got message:', event.type, event);
-    // check event.type and event.data
-});
-*/
-  
   // Event listener for page
 
   document.addEventListener('SGN_setup_notes', function(e) {
       var email = e.detail.email;
       var messageId = e.detail.messageId;
-      console.log("@102", email, messageId);
+      debugLog("@102", email, messageId);
       
       setupNotes(email, messageId);
   });
@@ -313,7 +247,7 @@ self.port.on("initPage", function handleMyMessage(dataurl) {
 });
 
 self.port.on("SGN_background", function(request){
-  console.log("@244", request);
+  debugLog("@244", request);
       switch(request.action){
         case "disable_edit":
             disableEdit();
@@ -329,14 +263,14 @@ self.port.on("SGN_background", function(request){
           break;
 
         case "show_log_in_prompt":
-          console.log("@20, show login");
+          debugLog("@20, show login");
           showLoginPrompt();
           disableEdit();
           break;
 
         case "show_error":
           var errorMessage = request.message;
-          console.log("Error in response:", errorMessage);
+          debugLog("Error in response:", errorMessage);
           var date = new Date();
           var timestamp = date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
           //alert(errorMessage);
@@ -355,13 +289,18 @@ self.port.on("SGN_background", function(request){
 					break;
 
         case "update_gdrive_note_info":
-          console.log("@166", request.gdriveFolderId, request.gdriveFolderId);
+          debugLog("@166", request.gdriveFolderId, request.gdriveFolderId);
           gCurrentGDriveFolderId = request.gdriveFolderId;
           gCurrentGDriveNoteId = request.gdriveNoteId;
           break;
 
+        case "disable_logger":
+          debugLog("@289, disable logger");
+          DEBUG = false;
+          break;
+
         default:
-          console.log("unknown background request", request);
+          debugLog("unknown background request", request);
           break;
       }
 
@@ -369,7 +308,8 @@ self.port.on("SGN_background", function(request){
 
 function sendMessage(messageObj)
 {
-  console.log("@240, send message", messageObj);
+  debugLog("@240, send message", messageObj);
   self.port.emit("SGN_content", messageObj);
 }
-console.log("@28");
+debugLog("@28");
+

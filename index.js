@@ -1,14 +1,27 @@
-console.log("walty test@1@index.js");
+debugLog("@1@index.js");
 
+//http://stackoverflow.com/questions/1215392/how-to-quickly-and-conveniently-disable-all-debugLog-statements-in-my-code
+var DEBUG = true;
+function debugLog()
+{
+  if ( DEBUG ) {
+      console.log.apply(this, arguments);
+  }
+}
+
+const {Cc, Ci, Cr, Cu, Cm, components} = require("chrome");
 var Request = require("sdk/request").Request;
 var OAuthConsumer = require("oauthorizer/lib/oauthconsumer.js").OAuthConsumer;
 var ss = require("sdk/simple-storage");
 var self = require("sdk/self");
 var pageMod = require("sdk/page-mod");
+var system = require("sdk/system");
+
 const { atob, btoa } = require("chrome").Cu.import("resource://gre/modules/Services.jsm", {});
 
-console.log("@2, OAuthConsumer", OAuthConsumer);
-console.log("@3, btoa", btoa);
+//debugLog("@2, OAuthConsumer", OAuthConsumer);
+//debugLog("@3, btoa", btoa);
+//
 //The refresh token, access token and email for google drive are stored in
 //local storage. Different gmails may have different sets of storage.
 function setStorage(email, key, value) 
@@ -21,36 +34,16 @@ function setStorage(email, key, value)
 function getStorage(email, key)
 {
   if(!email || email.indexOf("@") < 0){
-    console.log("email not found!");
+    debugLog("email not found!");
   }
 
   var storageKey = email + "||" + key;
   //value = localStorage[storageKey];
   value = ss.storage[storageKey];
 
-  console.log("@20, gets storage", email, key, value);
+  debugLog("@20, gets storage", email, key, value);
   return value;
 }
-
-/*
-var self = require('sdk/self');
-
-// a dummy function, to show how tests work.
-// to see how to test this function, look at test/test-index.js
-function dummy(text, callback) {
-  callback(text);
-}
-
-exports.dummy = dummy;
-
-console.log("walty test@11@index.js");
-console.log("walty test@12@index.js");
-console.log("walty test@13@index.js");
-var walty_test = 123;
-*/
-
-
-
 
 
 pageMod.PageMod({
@@ -60,14 +53,6 @@ pageMod.PageMod({
   onAttach: sendUrl
 });
 
-/*
-function initialize(sender, messageId){
-  //var jquery = require("./data/jquery-1.10.2.min.js");
-    sendMessage(sender, {action:"show_log_in_prompt"});
-    sendMessage(sender, {action:"disable_edit"});
-
-}
-*/
 
 //it should be executed after valid token checking
 function setupNotesFolder(sender){
@@ -92,7 +77,7 @@ function setupNotesFolder(sender){
 
           sendMessage(sender, {action:"enable_edit", gdriveEmail:getStorage(email, "gdrive_email")});  //ready for write new message
 
-         console.log("@276", data);
+         debugLog("@276", data);
        }
     })
 
@@ -108,7 +93,7 @@ function loadMessage(sender, gdriveNoteId){
 		url: "https://www.googleapis.com/drive/v2/files/"
                     + gdriveNoteId + "?alt=media",
 		success: function(data) {
-			console.log("@268", data);
+			debugLog("@268", data);
 			sendMessage(sender, {action:"update_content", content:data});
       sendMessage(sender, {action:"enable_edit", gdriveEmail:getStorage(email, "gdrive_email")});  //ready for write new message
 		},
@@ -132,7 +117,7 @@ function searchMessage(sender, messageId){
 			},
 			url: "https://www.googleapis.com/drive/v2/files",
 			success: function(data){
-				console.log("@245", data);
+				//debugLog("@245", data);
 				var gdriveFolderId = "";
 				var gdriveNoteId = "";
 
@@ -153,12 +138,12 @@ function searchMessage(sender, messageId){
 				else{
 					//second pass find the document
 					//var messageId = getStorage(email, "message_id");
-					console.log("@277", messageId);
+					debugLog("@277", messageId);
 					for(var i=0; i<data.items.length; i++){
 						var currentItem = data.items[i];
-            //console.log("@330", currentItem.title, messageId, currentItem.parents[0].id, gdriveFolderId);
-            //console.log("@325", currentItem == messageId);
-            //console.log("@325", currentItem.parents[0].id == gdriveFolderId);
+            //debugLog("@330", currentItem.title, messageId, currentItem.parents[0].id, gdriveFolderId);
+            //debugLog("@325", currentItem == messageId);
+            //debugLog("@325", currentItem.parents[0].id == gdriveFolderId);
 						if(currentItem.title == messageId 
                             && currentItem.parents[0].id == gdriveFolderId){
 							gdriveNoteId = currentItem.id;
@@ -166,7 +151,7 @@ function searchMessage(sender, messageId){
 						}
 					}
 
-          console.log("@330", gdriveNoteId);
+          debugLog("@330", gdriveNoteId);
 
           sendMessage(sender, {action:"update_gdrive_note_info", 
               gdriveNoteId:gdriveNoteId, gdriveFolderId:gdriveFolderId});
@@ -194,16 +179,16 @@ function searchMessage(sender, messageId){
 
 function logoutGoogleDrive(sender){
   var email = sender.email;
-  console.log("@207 ", getStorage(email, "access_token"));
-  console.log("@208 ", getStorage(email, "refresh_token"));
+  debugLog("@207 ", getStorage(email, "access_token"));
+  debugLog("@208 ", getStorage(email, "refresh_token"));
   var tokenValue = getStorage(email, "access_token");
   if(tokenValue){
-    console.log("Revoking token: ", tokenValue);
+    debugLog("Revoking token: ", tokenValue);
     //chrome.identity.removeCachedAuthToken({'token':tokenValue}, function(){});
     sendAjax({
       url:"https://accounts.google.com/o/oauth2/revoke?token=" + tokenValue,
       complete:function(){
-        console.log("@163");
+        debugLog("@163");
         setStorage(email, "access_token", "");
         setStorage(email, "refresh_token", "");
         setStorage(email, "gdrive_email", "");
@@ -224,8 +209,10 @@ function initialize(sender, messageId){
 	//var messageId = getStorage(email, "message_id");
   //var refresh_token = getStorage("refresh_token");
   if(getStorage(email, "refresh_token")){
-    console.log("@253, refresh token:", getStorage(email, "refresh_token"), 
+    debugLog("@253, refresh token:", getStorage(email, "refresh_token"), 
         "access_token", getStorage(email, "access_token"))
+
+    checkLogger(sender);
     sendMessage(sender, {action:"show_log_out_prompt"});
     sendMessage(sender, {action:"enable_edit"});
     updateUserInfo(sender);
@@ -264,7 +251,7 @@ function executeIfValidToken(sender, command){
         },
         url: "https://www.googleapis.com/oauth2/v3/token",
         success:function(data){
-          console.log("@172, renewed token");
+          debugLog("@172, renewed token");
           setStorage(email, "access_token", data.access_token);
           command(data);
         },
@@ -291,7 +278,7 @@ function updateUserInfo(sender){
       url:"https://www.googleapis.com/drive/v2/about?access_token=" + 
         getStorage(email, "access_token"),
       success:function(data){
-        console.log("@174, got user info", data);
+        debugLog("@174, got user info", data);
         setStorage(email, "gdrive_email", data.user.emailAddress);
         sendMessage(sender, {action:"update_user", email:data.user.emailAddress})
       },
@@ -326,8 +313,8 @@ function updateRefreshTokenFromCode(sender, messageId){
         setStorage(email, "access_token", data.access_token); //for future revoking
       }
       else{
-        console.log("@59, success", data);
-        //console.log(data);
+        debugLog("@59, success", data);
+        //debugLog(data);
         setStorage(email, "refresh_token", data.refresh_token);
         setStorage(email, "access_token", data.access_token);
         initialize(sender, messageId);
@@ -343,8 +330,8 @@ function loginGoogleDrive(sender, messageId) {
     };
 
 
-    console.log("@72", OAuthConsumer);
-    console.log("@72", OAuthConsumer.makeProvider);
+    debugLog("@72", OAuthConsumer);
+    debugLog("@72", OAuthConsumer.makeProvider);
     var p = OAuthConsumer.makeProvider('google-oauth2', 'Google',
         "38131814991-p4u809qrr5ee1bsehregd4os69jf2n7i.apps.googleusercontent.com", "mdA0U_jSkAjI_1x8pdgtrx02",
         "http://localhost", calls);
@@ -364,21 +351,21 @@ function loginGoogleDrive(sender, messageId) {
 
 
     function testCallback(svc) {
-      console.log("@59", svc);
-      console.log("@60", svc.token);
+      debugLog("@59", svc);
+      debugLog("@60", svc.token);
 
       var code = svc.token
       code = code.replace(/[#]/g, "");
-      console.log("@53:" + code);
+      debugLog("@53:" + code);
       setStorage(sender.email, "code", code);
       updateRefreshTokenFromCode(sender, messageId);
 
       //var code = code.replace(/[#]/g, "");
       // your access_token is svc.token
     }
-    console.log("@70, walty test");
+    debugLog("@70, walty test");
     var handler = OAuthConsumer.getAuthorizer(p, testCallback);
-    console.log("@71, walty test");
+    debugLog("@71, walty test");
     handler.startAuthentication();
 }
 
@@ -386,8 +373,8 @@ function loginGoogleDrive(sender, messageId) {
 //reference: https://developers.google.com/drive/web/quickstart/quickstart-js
 function postNote(sender, messageId, gdriveFolderId, gdriveNoteId, content){
   var email = sender.email;
-	console.log("@34, post content", content);
-	console.log("@32, ", gdriveFolderId);
+	debugLog("@34, post content", content);
+	debugLog("@32, ", gdriveFolderId);
 
 	executeIfValidToken(sender, function(data){
 		var uploadUrl =  "https://www.googleapis.com/upload/drive/v2/files";
@@ -426,7 +413,7 @@ function postNote(sender, messageId, gdriveFolderId, gdriveNoteId, content){
 			},
 			data: multipartRequestBody,
 			success: function(data){
-				console.log("message posted successfully");
+				debugLog("message posted successfully");
 			},
 			error: function(data){
 				sendMessage(sender, {action:"show_error", 
@@ -458,7 +445,7 @@ function setupListeners(worker, request){
       initialize(sender, request.messageId);
       break;
     default:
-      console.log("unknown request to background", request);
+      debugLog("unknown request to background", request);
       break;
   }
 
@@ -470,13 +457,13 @@ function sendUrl(worker) {
   worker.port.emit("initPage", dataurl);
 
   worker.port.on("SGN_content", function(request){
-    console.log("@38@index.js", request);
+    debugLog("@38@index.js", request);
     setupListeners(worker, request);
   });
 }
 
 function sendMessage(sender, message) {
-  console.log("@116", sender, message);
+  debugLog("@116", sender, message);
   sender.worker.port.emit("SGN_background", message); 
 }
 
@@ -503,7 +490,7 @@ function sendAjax(ajaxConfig) {
       if(!data)
         data = response.text;
 
-      console.log("@205, ajax complete", response.status, ajaxConfig.url, response.text);
+      //debugLog("@205, ajax complete", response.status, ajaxConfig.url, response.text);
 
       if(ajaxConfig.complete){
         ajaxConfig.complete(data);
@@ -512,13 +499,13 @@ function sendAjax(ajaxConfig) {
 
       if(response.status >= 400){ //got error
         if(ajaxConfig.error){
-          console.log("@205, ajax error", response.status, ajaxConfig.url, response.text);
+          //debugLog("@205, ajax error", response.status, ajaxConfig.url, response.text);
           ajaxConfig.error(data);
         }
       }
       else{ //success
         if(ajaxConfig.success){
-          console.log("@211, ajax success", ajaxConfig.url, response.text);
+          //debugLog("@211, ajax success", ajaxConfig.url, response.text);
           ajaxConfig.success(data);
         }
       }
@@ -539,4 +526,16 @@ function sendAjax(ajaxConfig) {
       request.get();
   }
 
+}
+
+function checkLogger(sender){
+  // Firefox 4 and later; Mozilla 2 and later
+  Cu.import("resource://gre/modules/AddonManager.jsm");
+  AddonManager.getAddonByID("@simple-gmail-notes", function(addon) {
+    //disable the log
+    if(addon.version != "0.0.1"){
+      DEBUG = false;
+      sendMessage(sender, {action : "disable_logger"});
+    }
+  });
 }
