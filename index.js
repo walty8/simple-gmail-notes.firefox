@@ -11,7 +11,8 @@ function debugLog()
 
 const {Cc, Ci, Cr, Cu, Cm, components} = require("chrome");
 var Request = require("sdk/request").Request;
-var OAuthConsumer = require("oauthorizer/lib/oauthconsumer.js").OAuthConsumer;
+//var OAuthConsumer = require("oauthorizer/lib/oauthconsumer.js").OAuthConsumer;
+let {OAuthConsumer} = require("./lib/oauthorizer/lib/oauthconsumer");
 var ss = require("sdk/simple-storage");
 var self = require("sdk/self");
 var pageMod = require("sdk/page-mod");

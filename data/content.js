@@ -1,7 +1,7 @@
 console.log("@walty@1@content.js");
 
 //http://stackoverflow.com/questions/1215392/how-to-quickly-and-conveniently-disable-all-console-log-statements-in-my-code
-var DEBUG = true;
+var DEBUG = false;
 function debugLog()
 {
   if ( DEBUG ) {
