@@ -33,12 +33,12 @@ Use the same profile to run: `jpm run --no-copy --profile <profile_folder>`
 
 The profile folder could be copied from your existing firefox, or from the execution of `jpm run`.
 
-** How to Reload **
+**How to Reload**
 
 `jpm post --post-url http://localhost:8888/`
 
 
-** How to Package **
+**How to Package**
 
 `jpm xpi`
 
