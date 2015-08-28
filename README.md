@@ -1,4 +1,4 @@
-**This is a _Firefox Addon_ that adds notes to Gmail conversations. One note per conversation.**
+### This is a _Firefox Addon_ that adds notes to Gmail conversations. 
 
 - 100% free and open source! 
 
@@ -16,13 +16,33 @@
 
 - See the extension website for the source code repository.
 
-**Dependencies (included in source code)**
+### Dependencies (included in source code)
 
 - [jQuery](https://jquery.com/)
 
 - [gmail.js](https://github.com/KartikTalwar/gmail.js/tree/master)
 
-**Firefox Addon Store**
+
+### Executions
+
+This project uses [jpm](https://developer.mozilla.org/en-US/Add-ons/SDK/Tutorials/Getting_Started_%28jpm%29) for development.
+
+Use a new profile every time: `jpm run`
+
+Use the same profile to run: `jpm run --no-copy --profile <profile_folder>`
+
+The profile folder could be copied from your existing firefox, or from the execution of `jpm run`.
+
+** How to Reload **
+
+`jpm post --post-url http://localhost:8888/`
+
+
+** How to Package **
+
+`jpm xpi`
+
+### Firefox Addon Store
 
 - <https://addons.mozilla.org/en-US/firefox/addon/simple-gmail-notes/>
 
