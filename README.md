@@ -22,6 +22,7 @@
 
 - [gmail.js](https://github.com/KartikTalwar/gmail.js/tree/master)
 
+- [oauthorizer](https://github.com/mozilla/oauthorizer)
 
 ### Executions
 
