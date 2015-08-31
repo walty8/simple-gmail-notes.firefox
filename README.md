@@ -26,13 +26,13 @@
 
 ### Executions
 
-This project uses [jpm](https://developer.mozilla.org/en-US/Add-ons/SDK/Tutorials/Getting_Started_%28jpm%29) for development.
+- This project uses [jpm](https://developer.mozilla.org/en-US/Add-ons/SDK/Tutorials/Getting_Started_%28jpm%29) for development.
 
-Use a new profile every time: `jpm run`
+- Use a new profile every time: `jpm run`
 
-Use the same profile to run: `jpm run --no-copy --profile <profile_folder>`
+- Use the same profile to run: `jpm run --no-copy --profile <profile_folder>`
 
-The profile folder could be copied from your existing firefox, or from the execution of `jpm run`.
+- The profile folder could be copied from your existing firefox, or from the execution of `jpm run`.
 
 **How to Reload**
 
@@ -46,4 +46,10 @@ The profile folder could be copied from your existing firefox, or from the execu
 ### Firefox Addon Store
 
 - <https://addons.mozilla.org/en-US/firefox/addon/simple-gmail-notes/>
+
+### Chrome Extension
+
+- The chrome extension could be found here:
+ - <https://github.com/walty8/simple-gmail-notes.chrome>
+- Since the notes are stored in Google Drive, it means the notes written in Chrome Extension could be retrieved from Firefox Addon.
 
