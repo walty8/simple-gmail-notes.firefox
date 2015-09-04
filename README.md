@@ -47,7 +47,7 @@
 
 - <https://addons.mozilla.org/en-US/firefox/addon/simple-gmail-notes/>
 
-### Chrome Extension
+_Chrome Extension_
 
 - The chrome extension could be found here:
  - <https://github.com/walty8/simple-gmail-notes.chrome>
