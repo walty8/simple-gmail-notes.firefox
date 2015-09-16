@@ -126,7 +126,7 @@ checkLogger = function(sender){
 backgroundInit = function(worker) {
   var dataurl = self.data.url("jquery-1.10.2.min.js");
   dataurl = dataurl.substring(0, dataurl.lastIndexOf('/')); 
-  worker.port.emit("initPage", dataurl);
+  worker.port.emit("initConent", dataurl);
   worker.port.on("SGN_content", function(request){
     debugLog("Get message to background", request);
     sender = {worker: worker, email: request.email};
@@ -137,7 +137,9 @@ backgroundInit = function(worker) {
 //trigger the background init script, and set up the content script
 pageMod.PageMod({
   include: ["https://mail.google.com/*", "http://mail.google.com/*"],
-  contentScriptFile: [self.data.url('lib/jquery-1.10.2.min.js'), self.data.url('content.js')],
+  contentScriptFile: [self.data.url('lib/jquery-1.10.2.min.js'), 
+                      self.data.url('common/content-common.js'),
+                      self.data.url('content.js')],
   contentScriptWhen: 'end',  
   onAttach: backgroundInit
 });
