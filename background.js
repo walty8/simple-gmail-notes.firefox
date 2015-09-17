@@ -1,4 +1,10 @@
-//This function must be implemented first, other all debug log would not work
+/*
+ * Simple Gmail Notes 
+ * https://github.com/walty8
+ * Copyright (C) 2015 Walty Yeung <walty8@gmail.com>
+ * License: GPLv3
+ */
+
 const {Cc, Ci, Cr, Cu, Cm, components} = require("chrome");
 const { atob, btoa } = require("chrome").Cu.import("resource://gre/modules/Services.jsm", {});
 var Request = require("sdk/request").Request;

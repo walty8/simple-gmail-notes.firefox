@@ -2,7 +2,11 @@
  * Simple Gmail Notes 
  * https://github.com/walty8
  * Copyright (C) 2015 Walty Yeung <walty8@gmail.com>
+ * License: GPLv3
+ *
+ * This script is going to be shared for both Firefox and Chrome extensions.
  */
+
 var settings = {
   MAX_RETRY_COUNT : 20,
   DEBUG : true

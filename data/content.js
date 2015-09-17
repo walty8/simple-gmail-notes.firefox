@@ -1,3 +1,10 @@
+/*
+ * Simple Gmail Notes 
+ * https://github.com/walty8
+ * Copyright (C) 2015 Walty Yeung <walty8@gmail.com>
+ * License: GPLv3
+ */
+
 debugLog("Entered content script");
 debugLog("Current content settings", settings);
 
