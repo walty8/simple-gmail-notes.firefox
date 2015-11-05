@@ -9,28 +9,38 @@
 
 var settings = {
   MAX_RETRY_COUNT : 20,
-  DEBUG : true
 }
 
 /*
  * Callback declarations
- * The follow functions must be implemented
  */
-sendMessage = function(messge) {
-  throw "sendMessage not implemented";
+sendBackgroundMessage = function(messge) {
+  throw "sendBackgroundMessage not implemented";
 }
 
 setupBackgroundEventsListener = function(callback) {
   throw "setupBackgroundEventsListener not implemented";
 }
 
+isDebug = function(callback) {
+  return true;
+}
+
 /*
- * Callback utilities
+ * Utilities
  */
+var sendEventMessage = function(eventName, eventDetail){
+  if(eventDetail == undefined){
+    eventDetail = {}
+  }
+
+  document.dispatchEvent(new CustomEvent(eventName,  {}));
+}
+
 debugLog = function()
 {
-  if (settings.DEBUG) {
-      console.log.apply(this, arguments);
+  if (isDebug()) {
+      console.log.apply(console, arguments);
   }
 }
 
@@ -117,13 +127,13 @@ setupNotes = function(email, messageId){
     "disabled":"disabled"
   }).css({
     "width": "100%", 
-    "height": "50px",
+    "height": "72px",
     "color": "gray",
     "margin": "5px",
   }).blur(function(){
     var content = $(this).val();
     if(gPreviousContent != content){
-      sendMessage({action:"post_note", email:email, messageId:messageId, 
+      sendBackgroundMessage({action:"post_note", email:email, messageId:messageId, 
                    gdriveNoteId:gCurrentGDriveNoteId, 
                    gdriveFolderId:gCurrentGDriveFolderId, content:content});
     }
@@ -170,76 +180,199 @@ setupNotes = function(email, messageId){
     $.each(classList, function(index, item){
       if(item != 'sgn_action'){
           var action = item.substring(4);   //remove the 'sgn_' prefix
-          sendMessage({action: action, email: email, messageId:messageId});
+          sendBackgroundMessage({action: action, email: email, messageId:messageId});
       }
     });
   });
 
   //load initial message
   debugLog("Start to initailize");
-  sendMessage({action:"initialize", email: email, messageId:messageId});
+  sendBackgroundMessage({action:"initialize", email: email, messageId:messageId});
 }
 
-setupListeners = function(){
-  setupBackgroundEventsListener(
-    function(request) {
-      debugLog("Handle request", request);
-      switch(request.action){
-        case "disable_edit":
-            disableEdit();
-            break;
-        case "enable_edit":
-            enableEdit();
-            showLogoutPrompt(request.gdriveEmail)
-            break;
-        case "show_log_out_prompt":
-          showLogoutPrompt();
-          break;
-        case "show_log_in_prompt":
-          debugLog("Show login");
-          showLoginPrompt();
-          disableEdit();
-          break;
-        case "show_error":
-          var errorMessage = request.message;
-          debugLog("Error in response:", errorMessage);
-          var date = new Date();
-          var timestamp = date.getHours() + ":" + date.getMinutes() + ":" + 
-                            date.getSeconds();
-          $(".sgn_error_timestamp").text("(" +  timestamp + ")");
-          $(".sgn_error").show();
-          break;
-        case "update_user":
-          $(".sgn_user").text(request.email);
-          break;
-        case "update_content":
-          gPreviousContent = request.content;
-          $(".sgn_input").val(request.content);
-          showLogoutPrompt(request.email);
-					break;
-        case "update_gdrive_note_info":
-          debugLog("Update google drive note info", 
-                        request.gdriveFolderId, request.gdriveFolderId);
-          gCurrentGDriveFolderId = request.gdriveFolderId;
-          gCurrentGDriveNoteId = request.gdriveNoteId;
-          break;
-        case "disable_logger":
-          debugLog("Trying to disable logger");
-          settings.DEBUG = false;
-          break;
-        default:
-          debugLog("unknown background request", request);
-      }
-    }
-  )
 
-  // Event listener for page
-  document.addEventListener('SGN_setup_notes', function(e) {
-      var email = e.detail.email;
-      var messageId = e.detail.messageId;
-      
-      setupNotes(email, messageId);
+
+var gEmailKeyNoteDict = {};
+_updateNotesOnSummary = function(userEmail, pulledNoteList){
+  var getTitleNode = function(mailNode){
+    return $(mailNode).find(".xT .y6").find("span").first();
+  }
+
+  var getEmailKey = function(mailNode){
+    var titleNode = getTitleNode(mailNode);
+    var title = titleNode.text();
+    var sender = mailNode.find(".yW .yP").attr("email");
+
+    if($(location).attr("href").indexOf("#sent") > 0){
+      sender = userEmail;
+    }
+
+    var time = mailNode.find(".xW").find("span").last().attr("title");
+    var emailKey = title + "|" + sender + "|" + time;
+
+    return emailKey;
+  }
+
+  var hasMarkedNote = function(mailNode){
+    return mailNode.find(".sgn").length > 0;
+  }
+
+  var markNote = function(mailNode, note){
+    var titleNode = getTitleNode(mailNode);
+    var labelNode;
+
+    if(note){
+      labelNode = $('<div class="ar as sgn"><div class="at" title="Simple Gmail Notes: ' + note + '" style="background-color: #ddd; border-color: #ddd;">' + 
+                            '<div class="au" style="border-color:#ddd"><div class="av" style="color: #666">[' + note.substring(0, 20) + ']</div></div>' + 
+                       '</div></div>');
+    }
+    else {
+      labelNode = $('<div style="display:none" class="sgn"></div>');
+    }
+
+    titleNode.before(labelNode);
+  }
+
+  if(pulledNoteList && pulledNoteList.length){
+
+    debugLog("updated summary from pulled note, total count:", 
+             pulledNoteList.length);
+    $.each(pulledNoteList, function(index, item){
+      var emailKey = gEmailIdKeyDict[item.title];
+      gEmailKeyNoteDict[emailKey] = item.description;  
+    });
+
+  }
+
+  //loop for each email tr
+  $("tr.zA").each(function(){
+    var emailKey = getEmailKey($(this));
+    //debugLog("Working on email:", emailKey);
+    if(!hasMarkedNote($(this))){
+      var emailNote = gEmailKeyNoteDict[emailKey];
+      markNote($(this), emailNote);
+    }
   });
 }
 
-debugLog("Finished background script (common)");
+updateNotesOnSummary = function(userEmail, pulledNoteList){
+  setTimeout(function(){
+    _updateNotesOnSummary(userEmail, pulledNoteList);
+  }, 300);  //wait until gmail script processing finished
+}
+
+var gEmailIdKeyDict = {};
+pullNotes = function(userEmail, emailList){
+  var pendingPullList = [];
+
+  $.each(emailList, function(index, email){
+    if(!email.sender){
+      email.sender = userEmail;
+    }
+
+    emailKey = email.title + "|" + email.sender + "|" + email.time;
+    //remove html tag
+    emailKey = $("<div/>").html(emailKey).html();
+
+    if(gEmailKeyNoteDict[emailKey] == undefined){
+      pendingPullList.push(email.id);
+      gEmailIdKeyDict[email.id] = emailKey;
+    }
+  });
+
+  //batch pull logic here
+  if(pendingPullList.length){
+    sendBackgroundMessage({action:'pull_notes', email:userEmail, 
+                 pendingPullList:pendingPullList});
+  }
+  else{
+    debugLog("no pending item, skipped the pull");
+    updateNotesOnSummary(userEmail, [])
+  }
+}
+
+setupListeners = function(){
+  setupBackgroundEventsListener(function(request){
+    debugLog("Handle request", request);
+    switch(request.action){
+      case "disable_edit":
+        disableEdit();
+          break;
+      case "enable_edit":
+          enableEdit();
+          showLogoutPrompt(request.gdriveEmail)
+          break;
+      case "show_log_out_prompt":
+        showLogoutPrompt();
+        break;
+      case "show_log_in_prompt":
+        debugLog("Show login");
+        showLoginPrompt();
+        disableEdit();
+        break;
+      case "show_error":
+        var errorMessage = request.message;
+        debugLog("Error in response:", errorMessage);
+        var date = new Date();
+        var timestamp = date.getHours() + ":" + date.getMinutes() + ":" + 
+                          date.getSeconds();
+        $(".sgn_error_timestamp").text("(" +  timestamp + ")");
+        $(".sgn_error").show();
+        break;
+      case "update_user":
+        $(".sgn_user").text(request.email);
+        break;
+      case "update_content":
+        gPreviousContent = request.content;
+        $(".sgn_input").val(request.content);
+        showLogoutPrompt(request.email);
+        break;
+      case "update_gdrive_note_info":
+        debugLog("Update google drive note info", 
+                      request.gdriveFolderId, request.gdriveFolderId);
+        gCurrentGDriveFolderId = request.gdriveFolderId;
+        gCurrentGDriveNoteId = request.gdriveNoteId;
+        break;
+      case "set_debug":
+        debugLog("Trying to disable logger");
+        isDebugCache = request.value;
+        //settings.DEBUG = false;
+        break;
+      case "update_summary":
+        debugLog("update summary from background call", request.email);
+        var noteList = request.noteList;
+        updateNotesOnSummary(request.email, noteList);
+        break;
+      //remove the note in cache, so the new notes would be collected next time
+      case "revoke_summary_note":
+        debugLog("Trying to revoke summary note", request);
+        var emailId = request.messageId;
+        var emailKey = gEmailIdKeyDict[emailId];
+
+        delete gEmailKeyNoteDict[emailKey];
+        delete gEmailIdKeyDict[emailId];
+        break;
+
+      default:
+          debugLog("unknown background request", request);
+    }
+  });
+
+  // Event listener for page
+  document.addEventListener('SGN_setup_notes', function(e) {
+    var email = e.detail.email;
+    var messageId = e.detail.messageId;
+    
+    setupNotes(email, messageId);
+  });
+
+  document.addEventListener('SGN_pull_notes', function(e) {
+    debugLog("Requested to pull notes");
+    var email = e.detail.email;
+    var emailList = e.detail.emailList;
+
+    pullNotes(email, emailList);
+  });
+}
+
+debugLog("Finished content script (common)");

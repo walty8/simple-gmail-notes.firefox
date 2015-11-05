@@ -20,26 +20,17 @@ loader.loadSubScript(self.data.url("common/background-common.js"));
 debugLog("Common script loaded, current settings", settings);
 
 //Callback implementation for common script
-setStorage = function(sender, key, value) 
-{
-  var email = sender.email;
-  var storageKey = email + "||" + key;
-  ss.storage[storageKey] = value;
+isDebugCache = null;
+isDebug = function(callback){
+  return true;
+  return isDebugCache == true;
 }
 
-getStorage = function(sender, key)
-{
-  var email = sender.email;
-  if(!email || email.indexOf("@") < 0){
-    debugLog("email not found!");
-  }
-  var storageKey = email + "||" + key;
-  value = ss.storage[storageKey];
-  debugLog("Get storage", email, key, value);
-  return value;
+getRawStorageObject = function(){
+  return ss.storage
 }
 
-sendMessage = function(sender, message) {
+sendContentMessage = function(sender, message) {
   debugLog("Sending message", sender, message);
   sender.worker.port.emit("SGN_background", message); 
 }
@@ -121,16 +112,17 @@ removeCachedToken = function(toeknValue){
 checkLogger = function(sender){
   Cu.import("resource://gre/modules/AddonManager.jsm");
   AddonManager.getAddonByID("@simple-gmail-notes", function(addon) {
-    if(addon.version != "0.0.1"){
-      settings.DEBUG = false;
-      sendMessage(sender, {action : "disable_logger"});
-    }
+    var isDebug = addon.version == "0.0.1";
+
+    //settings.DEBUG = false;
+    isDebugCache = isDebug;
+    sendContentMessage(sender, {action : "set_debug", value:isDebug});
   });
 }
 
 //background script initialzation 
 backgroundInit = function(worker) {
-  var dataurl = self.data.url("jquery-1.10.2.min.js");
+  var dataurl = self.data.url("jquery-1.11.3.min.js");
   dataurl = dataurl.substring(0, dataurl.lastIndexOf('/')); 
   worker.port.emit("initConent", dataurl);
   worker.port.on("SGN_content", function(request){
@@ -143,7 +135,7 @@ backgroundInit = function(worker) {
 //trigger the background init script, and set up the content script
 pageMod.PageMod({
   include: ["https://mail.google.com/*", "http://mail.google.com/*"],
-  contentScriptFile: [self.data.url('lib/jquery-1.10.2.min.js'), 
+  contentScriptFile: [self.data.url('lib/jquery-1.11.3.min.js'), 
                       self.data.url('common/content-common.js'),
                       self.data.url('content.js')],
   contentScriptWhen: 'end',  

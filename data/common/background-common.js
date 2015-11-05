@@ -11,8 +11,7 @@ var settings = {
   CLIENT_ID: "38131814991-p4u809qrr5ee1bsehregd4os69jf2n7i.apps.googleusercontent.com",
   CLIENT_SECRET: "mdA0U_jSkAjI_1x8pdgtrx02",
   NOTE_FOLDER_NAME: "_SIMPLE_GMAIL_NOTES_",
-  SCOPE: 'https://www.googleapis.com/auth/drive.file',
-  DEBUG: true
+  SCOPE: 'https://www.googleapis.com/auth/drive.file'
 } 
 
 /*
@@ -23,16 +22,16 @@ var settings = {
 
 //The refresh token, access token and email for google drive are stored in
 //local storage. Different gmails may have different sets of storage.
-setStorage = function(sender, key, value) {
-  throw "SetStorage not implementd";
+isDebug = function(callback) {
+  return false;
 }
 
-getStorage = function(sender, key) {
-  throw "getStorage not implemented";
+getRawStorageObject = function(){
+  throw "getRawStorageObject not implementd";
 }
 
-sendMessage = function(sender, message) {
-  throw "sendMessage not implemented";
+sendContentMessage = function(sender, message) {
+  throw "sendContentMessage not implemented";
 }
 
 sendAjax = function(config) {
@@ -58,11 +57,40 @@ checkLogger = function(sender){
 /*
  * Shared Utility Functions
  */
+
 debugLog = function() //need some further work
 {
-  if (settings.DEBUG && console && console.log) {
-      console.log.apply(this, arguments);
+  if (isDebug() && console && console.log) {
+      console.log.apply(console, arguments);
   }
+}
+
+setStorage = function(sender, key, value) {
+  var email = sender.email;
+  var storageKey = email + "||" + key;
+  var storage = getRawStorageObject();
+  storage[storageKey] = value;
+}
+
+getStorage = function(sender, key) {
+  var email = sender.email;
+  if(!email || email.indexOf("@") < 0){
+    debugLog("Get storage email not found.");
+  }
+
+  var storageKey = email + "||" + key;
+  var storage = getRawStorageObject()
+  value = storage[storageKey];
+
+  debugLog("Get storage result", email, key, value);
+  return value;
+}
+
+getSettingHideListingNotes = function() {
+  var storage = getRawStorageObject();
+  var result = (storage["hideListingNotes"] === "true");
+
+  return result;
 }
 
 
@@ -81,7 +109,10 @@ postNote = function(sender, messageId, gdriveFolderId, gdriveNoteId, content){
       methodType = "PUT";
     }
 
-    var metadata = { title:messageId, parents:[{"id":gdriveFolderId}] };
+    var noteDescripton = content.substring(0,50);
+
+    var metadata = { title:messageId, parents:[{"id":gdriveFolderId}], 
+                     description: noteDescripton };
     var boundary = "-------314159265358979323846";
     var contentType = "text/plain";
     var delimiter = "\r\n--" + boundary + "\r\n";
@@ -111,7 +142,7 @@ postNote = function(sender, messageId, gdriveFolderId, gdriveNoteId, content){
         debugLog("message posted successfully");
       },
       error: function(data){
-        sendMessage(sender, {action:"show_error", 
+        sendContentMessage(sender, {action:"show_error", 
                               message:"Faild post message, error: " + 
                               JSON.stringify(data)});
       }
@@ -127,7 +158,7 @@ showRefreshTokenError = function(sender, error){
                     "If error persists, you may manually " +
                     "<a href='https://accounts.google.com/b/0/IssuedAuthSubTokens'>revoke</a> " +
                     "previous tokens.\n"
-  sendMessage(sender, {action:"show_error", message: errorMessage});
+  sendContentMessage(sender, {action:"show_error", message: errorMessage});
 }
 
 updateRefreshTokenFromCode = function(sender, messageId){
@@ -165,8 +196,8 @@ updateRefreshTokenFromCode = function(sender, messageId){
 
 updateUserInfo = function(sender){
   if(getStorage(sender, "gdrive_email")){
-    sendMessage(sender, {action:"update_user", 
-                         sender:getStorage(sender, "gdrive_email")});
+    sendContentMessage(sender, {action:"update_user", 
+                         email:getStorage(sender, "gdrive_email")});
     return;
   }
 
@@ -176,11 +207,11 @@ updateUserInfo = function(sender){
         getStorage(sender, "access_token"),
       success:function(data){
         setStorage(sender, "gdrive_email", data.user.emailAddress);
-        sendMessage(sender, {action:"update_user", 
-                             sender:data.user.emailAddress})
+        sendContentMessage(sender, {action:"update_user", 
+                             email:data.user.emailAddress})
       },
       error:function(){
-        sendMessage(sender, {action:"show_error", 
+        sendContentMessage(sender, {action:"show_error", 
                              message: "Failed to get Google Drive User"});
       }
     });
@@ -188,6 +219,14 @@ updateUserInfo = function(sender){
 }
 
 executeIfValidToken = function(sender, command){
+  if(!getStorage(sender, "access_token") && 
+     !getStorage(sender, "refresh_token")){  //if acccess token not found
+      
+    debugLog("@197, no token found, skip the verification");
+    showRefreshTokenError(sender, "No token found.");
+    return;
+  }
+
   sendAjax({
     url:"https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=" + 
           getStorage(sender, "access_token"),
@@ -226,14 +265,16 @@ loginGoogleDrive = function(sender, messageId){
   launchAuthorizer(sender, function(code) {
       debugLog("Code collected", code);
       if(!code){
-        sendMessage(sender, {action:"show_log_in_prompt"});
-        sendMessage(sender, {action:"disable_edit"});
-        sendMessage(sender, {action:"show_error", 
+        sendContentMessage(sender, {action:"show_log_in_prompt"});
+        sendContentMessage(sender, {action:"disable_edit"});
+        sendContentMessage(sender, {action:"show_error", 
             message:"Failed to login Google Drive."});
       }
       else{
         //get code from redirect url
-        //var code = redirect_url.split("=")[1];
+        if(code.indexOf("=") >= 0)  //for chrome
+          code = code.split("=")[1];
+
         code = code.replace(/[#]/g, "");
         debugLog("Collected code:" + code);
         setStorage(sender, "code", code);
@@ -257,8 +298,8 @@ logoutGoogleDrive = function(sender){
         setStorage(sender, "access_token", "");
         setStorage(sender, "refresh_token", "");
         setStorage(sender, "gdrive_email", "");
-        sendMessage(sender, {action:"show_log_in_prompt"});
-        sendMessage(sender, {action:"disable_edit"});
+        sendContentMessage(sender, {action:"show_log_in_prompt"});
+        sendContentMessage(sender, {action:"disable_edit"});
       }
     });
   }
@@ -274,12 +315,12 @@ loadMessage = function(sender, gdriveNoteId){
           gdriveNoteId + "?alt=media",
     success: function(data) {
       debugLog("Loaded message", data);
-      sendMessage(sender, {action:"update_content", content:data});
-      sendMessage(sender, {action:"enable_edit", 
+      sendContentMessage(sender, {action:"update_content", content:data});
+      sendContentMessage(sender, {action:"enable_edit", 
                            gdriveEmail:getStorage(sender, "gdrive_email")});  
     },
     error: function(data){
-      sendMessage(sender, {action:"show_error", 
+      sendContentMessage(sender, {action:"show_error", 
                            message:"Faild load message, error: " + 
                                     JSON.stringify(data)});
     }
@@ -303,23 +344,21 @@ setupNotesFolder = function(sender){
         url: "https://www.googleapis.com/drive/v2/files",
        success: function(data){
          var gdriveFolderId = data.id;
-         sendMessage(sender, {action:"update_gdrive_note_info", 
+         sendContentMessage(sender, {action:"update_gdrive_note_info", 
                               gdriveNoteId:"", 
                               gdriveFolderId:gdriveFolderId});
          //ready for write new message
-         sendMessage(sender, {action:"enable_edit", 
-                              gdriveEmail:getStorage(sender, "gdrive_email")}); 
+         sendContentMessage(sender, {action:"enable_edit", 
+                              email:getStorage(sender, "gdrive_email")}); 
          debugLog("Data loaded:", data);
        }
     })
 
 }
 
-//list the files created by this app only (as restricted by permission)
-searchNote = function(sender, messageId){
+gdriveQuery = function(sender, query, success_cb, error_cb){
+
   executeIfValidToken(sender, function(data){
-    var query = "title = '" + settings.NOTE_FOLDER_NAME + "' or " +
-                  "title = '" + messageId + "'";
     query = encodeURIComponent(query);
     debugLog("Search message by query:", query);
     sendAjax({
@@ -330,59 +369,71 @@ searchNote = function(sender, messageId){
           "Authorization": "Bearer " + getStorage(sender, "access_token")
       },
       url: "https://www.googleapis.com/drive/v2/files?q=" + query,
-      success: function(data){
-        debugLog("Query result:", data);
-        var gdriveFolderId = "";
-        var gdriveNoteId = "";
+      success:function(data){success_cb(data)},
+      error:function(data){error_cb(data)}
+    });
+  })
 
-        //first pass, get folder id for gmail notes
+
+}
+
+//list the files created by this app only (as restricted by permission)
+searchNote = function(sender, messageId){
+  var query = "title = '" + settings.NOTE_FOLDER_NAME + "' or " +
+                "title = '" + messageId + "'";
+  gdriveQuery(sender, query, 
+    function(data){ //success callback
+      debugLog("Query result:", data);
+      var gdriveFolderId = "";
+      var gdriveNoteId = "";
+
+      //first pass, get folder id for gmail notes
+      for(var i=0; i<data.items.length; i++){
+        var currentItem = data.items[i];
+        if(currentItem.title == settings.NOTE_FOLDER_NAME
+            && currentItem.parents[0].isRoot){
+          //found the root folder
+          gdriveFolderId = currentItem.id;
+          break;
+        }
+      }
+
+      if(!gdriveFolderId){
+        setupNotesFolder(sender);
+      }
+      else{
+        //second pass find the document
+        debugLog("Searching message", messageId);
         for(var i=0; i<data.items.length; i++){
           var currentItem = data.items[i];
-          if(currentItem.title == settings.NOTE_FOLDER_NAME
-              && currentItem.parents[0].isRoot){
-            //found the root folder
-            gdriveFolderId = currentItem.id;
+          if(currentItem.title == messageId && 
+              currentItem.parents[0].id == gdriveFolderId){
+            gdriveNoteId = currentItem.id;
             break;
           }
         }
 
-        if(!gdriveFolderId){
-          setupNotesFolder(sender);
+        debugLog("Google Drive Folder ID found", gdriveNoteId);
+//
+        sendContentMessage(sender, {action:"update_gdrive_note_info", 
+                             gdriveNoteId:gdriveNoteId, 
+                             gdriveFolderId:gdriveFolderId});
+
+        if(gdriveNoteId){
+          loadMessage(sender, gdriveNoteId);
         }
-        else{
-          //second pass find the document
-          debugLog("Searching message", messageId);
-          for(var i=0; i<data.items.length; i++){
-            var currentItem = data.items[i];
-            if(currentItem.title == messageId && 
-                currentItem.parents[0].id == gdriveFolderId){
-              gdriveNoteId = currentItem.id;
-              break;
-            }
-          }
-
-          debugLog("Google Drive Folder ID found", gdriveNoteId);
-
-          sendMessage(sender, {action:"update_gdrive_note_info", 
-                               gdriveNoteId:gdriveNoteId, 
-                               gdriveFolderId:gdriveFolderId});
-
-          if(gdriveNoteId){
-            loadMessage(sender, gdriveNoteId);
-          }
-          else{//ready for write new message
-            sendMessage(sender, {
-                action:"enable_edit", 
-                gdriveEmail:getStorage(sender, "gdrive_email")
-            });
-          }
+        else{//ready for write new message
+          sendContentMessage(sender, {
+              action:"enable_edit", 
+              gdriveEmail:getStorage(sender, "gdrive_email")
+          });
         }
-      },
-      error:function(data){
-        showRefreshTokenError(sender, JSON.stringify(data));
       }
-    });
-  });
+    },
+    function(data){ //error callback
+      showRefreshTokenError(sender, JSON.stringify(data));
+    }
+  );
 }
 
 //Do as much initilization as possible, while not trigger login page
@@ -399,11 +450,64 @@ initialize = function(sender, messageId){
     if(getStorage(sender, "access_token")){
       logoutGoogleDrive(sender);
     }
-    sendMessage(sender, {action:"show_log_in_prompt"});
-    sendMessage(sender, {action:"disable_edit"});
+    sendContentMessage(sender, {action:"show_log_in_prompt"});
+    sendContentMessage(sender, {action:"disable_edit"});
   }
 }
 
+sendSummaryNotes = function(sender, pullList, resultList){
+  var result = [];
+  var itemDict = {};
+  $.each(resultList, function(index, emailItem){
+    if(emailItem.description){
+      itemDict[emailItem.title] = emailItem.description;
+    }
+  });
+
+
+  for(var i=0; i<pullList.length; i++){
+    var title = pullList[i];
+    var description = ""; //empty string for not found
+    if(itemDict[title]){
+      description = itemDict[title];
+    }
+
+    result.push({"title":title, "description":description});
+  }
+
+  sendContentMessage(sender, {email:getStorage(sender, "gdrive_email"), 
+                       action:"update_summary", noteList:result});
+}
+
+pullNotes = function(sender, pendingPullList){
+  var hideListingNotes = getSettingHideListingNotes();
+
+  if(hideListingNotes){
+    debugLog("@482, skipped pulling because settings -> hide listing notes");
+    sendSummaryNotes(sender, pendingPullList, []);  //send an empty result
+    return;
+  }
+
+  debugLog("@414", pendingPullList);
+  var query = "1=1";
+  $.each(pendingPullList, function(index, messageId){
+    query += " or title='" + messageId + "'"
+  });
+
+  query = query.replace("1=1 or", "");  //remove the heading string
+
+  debugLog("@431, query", query);
+
+  gdriveQuery(sender, query,
+    function(data){ //success callback
+      debugLog("@433, query succeed", data);
+      sendSummaryNotes(sender, pendingPullList, data.items);
+    },
+    function(data){ //error callback
+      debugLog("@439, query failed", data);
+    }
+  );
+}
 
 //For messaging between background and content script
 setupListeners = function(sender, request){
@@ -420,9 +524,13 @@ setupListeners = function(sender, request){
       postNote(sender, request.messageId, 
                  request.gdriveFolderId, request.gdriveNoteId, 
                  request.content);
+      sendContentMessage(sender, {action:"revoke_summary_note", messageId: request.messageId});
       break;
     case "initialize":
       initialize(sender, request.messageId);
+      break;
+    case "pull_notes":
+      pullNotes(sender, request.pendingPullList);
       break;
     default:
       debugLog("unknown request to background", request);

@@ -9,7 +9,7 @@ debugLog("Entered content script");
 debugLog("Current content settings", settings);
 
 //implement callbacks
-sendMessage = function(messageObj)
+sendBackgroundMessage = function(messageObj)
 {
   debugLog("Send message", messageObj);
   self.port.emit("SGN_content", messageObj);
@@ -21,12 +21,19 @@ setupBackgroundEventsListener = function(callback){
   });
 }
 
+isDebugCache = null;
+isDebug = function(callback){
+  return true;
+  return isDebugCache == true;
+}
+//callback implementation end
+
 //initialization scripts
 setupPageScripts = function(dataurl){
   // Handle the message
   if(top.document == document) {
      var j = document.createElement('script');
-     j.src = dataurl+'/lib/jquery-1.10.2.min.js';
+     j.src = dataurl+'/lib/jquery-1.11.3.min.js';
      (document.head || document.documentElement).appendChild(j);
 
      var g = document.createElement('script');
