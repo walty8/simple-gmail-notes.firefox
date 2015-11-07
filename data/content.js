@@ -41,6 +41,10 @@ setupPageScripts = function(dataurl){
      (document.head || document.documentElement).appendChild(g);
 
      var s = document.createElement('script');
+     s.src = dataurl+'/common/page-common.js';
+     (document.head || document.documentElement).appendChild(s);
+
+     var s = document.createElement('script');
      s.src = dataurl+'/page.js';
      (document.head || document.documentElement).appendChild(s);
   }
