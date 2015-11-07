@@ -21,9 +21,11 @@ setupBackgroundEventsListener = function(callback){
   });
 }
 
-isDebugCache = null;
+var isDebugCache = null;
 isDebug = function(callback){
-  return true;
+  //console.log("debug cache:" + typeof(isDebugCache));
+  //return false;
+  //return true;
   return isDebugCache == true;
 }
 //callback implementation end
@@ -40,13 +42,13 @@ setupPageScripts = function(dataurl){
      g.src = dataurl+'/lib/gmail.js';
      (document.head || document.documentElement).appendChild(g);
 
-     var s = document.createElement('script');
-     s.src = dataurl+'/common/page-common.js';
-     (document.head || document.documentElement).appendChild(s);
+     var c = document.createElement('script');
+     c.src = dataurl+'/common/page-common.js';
+     (document.head || document.documentElement).appendChild(c);
 
-     var s = document.createElement('script');
-     s.src = dataurl+'/page.js';
-     (document.head || document.documentElement).appendChild(s);
+     var p = document.createElement('script');
+     p.src = dataurl+'/page.js';
+     (document.head || document.documentElement).appendChild(p);
   }
 }
 

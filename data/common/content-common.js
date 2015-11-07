@@ -23,7 +23,8 @@ setupBackgroundEventsListener = function(callback) {
 }
 
 isDebug = function(callback) {
-  return true;
+  //return true;  //turn on this only if u want to check initilization part
+  return false;
 }
 
 /*
@@ -334,7 +335,7 @@ setupListeners = function(){
         gCurrentGDriveNoteId = request.gdriveNoteId;
         break;
       case "set_debug":
-        debugLog("Trying to disable logger");
+        debugLog("Trying to set debug: " + request.value);
         isDebugCache = request.value;
         //settings.DEBUG = false;
         break;

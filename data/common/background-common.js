@@ -5,6 +5,10 @@
  * License: GPLv3
  *
  * This script is going to be shared for both Firefox and Chrome extensions.
+ * Note that jquery function calls should be avoided in this file, because 
+ * jquery could not be imported to the background page, see sendAjax and 
+ * iterateArray for the samples.
+ *
  */
 
 var settings = {
@@ -23,6 +27,7 @@ var settings = {
 //The refresh token, access token and email for google drive are stored in
 //local storage. Different gmails may have different sets of storage.
 isDebug = function(callback) {
+  //return true;  //turn on this only if u want to check initialization part
   return false;
 }
 
@@ -36,6 +41,10 @@ sendContentMessage = function(sender, message) {
 
 sendAjax = function(config) {
   throw "sendAjax not implemented";
+}
+
+iterateArray = function(arr, callback){
+  throw "iterateArray not implemented";
 }
 
 getRedirectUri = function() {
@@ -458,7 +467,7 @@ initialize = function(sender, messageId){
 sendSummaryNotes = function(sender, pullList, resultList){
   var result = [];
   var itemDict = {};
-  $.each(resultList, function(index, emailItem){
+  iterateArray(resultList, function(index, emailItem){
     if(emailItem.description){
       itemDict[emailItem.title] = emailItem.description;
     }
@@ -490,7 +499,7 @@ pullNotes = function(sender, pendingPullList){
 
   debugLog("@414", pendingPullList);
   var query = "1=1";
-  $.each(pendingPullList, function(index, messageId){
+  iterateArray(pendingPullList, function(index, messageId){
     query += " or title='" + messageId + "'"
   });
 

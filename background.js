@@ -20,9 +20,10 @@ loader.loadSubScript(self.data.url("common/background-common.js"));
 debugLog("Common script loaded, current settings", settings);
 
 //Callback implementation for common script
-isDebugCache = null;
+var isDebugCache = null;
 isDebug = function(callback){
-  return true;
+  //return false;
+  //return true;
   return isDebugCache == true;
 }
 
@@ -76,6 +77,12 @@ sendAjax = function(ajaxConfig) {
   }
 }
 
+iterateArray = function(arr, callback){
+  for(var i=0; i<arr.length; i++){
+    callback(i, arr[i]);
+  }
+}
+
 getRedirectUri = function() {
   return "http://localhost";
 }
@@ -120,9 +127,9 @@ checkLogger = function(sender){
   });
 }
 
-//background script initialzation 
+//background script initialzation   //we only care the folder
 backgroundInit = function(worker) {
-  var dataurl = self.data.url("jquery-1.11.3.min.js");
+  var dataurl = self.data.url("dummy.html");  //we only care the folder
   dataurl = dataurl.substring(0, dataurl.lastIndexOf('/')); 
   worker.port.emit("initConent", dataurl);
   worker.port.on("SGN_content", function(request){
