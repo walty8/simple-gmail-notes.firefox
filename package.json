@@ -1,17 +1,23 @@
 {
   "title": "Simple Gmail Notes",
-  "name": "simple-gmail-notes",
-  "version": "3.0.1",
-  "description": "Add notes to email threads in Gmail.",
-  "main": "background.js",
-  "author": "Walty Yeung",
-  "engines": {
-    "firefox": ">=38.0a1",
-    "fennec": ">=38.0a1"
-  },
-  "license": "GPLv3",
-"permissions": {
-    "cross-domain-content": ["https://accounts.google.com/", "https://www.googleapis.com/"]
-}
-
+    "name": "simple-gmail-notes",
+    "version": "0.3.1",
+    "description": "Add notes to email threads in Gmail.",
+    "main": "background.js",
+    "author": "Walty Yeung",
+    "engines": {
+      "firefox": ">=38.0a1",
+      "fennec": ">=38.0a1"
+    },
+    "license": "GPLv3",
+    "permissions": {
+      "cross-domain-content": ["https://accounts.google.com/", "https://www.googleapis.com/"]
+    },
+    "preferences": [{
+      "name": "hideListingNotes",
+      "title": "Hide Listing Notes",
+      "description": "Hide the note abstract in the email listing page.",
+      "type": "bool",
+      "value": false
+    }]
 }

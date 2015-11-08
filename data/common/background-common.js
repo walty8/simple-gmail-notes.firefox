@@ -31,6 +31,10 @@ isDebug = function(callback) {
   return false;
 }
 
+getPreferences = function(){
+  throw "getPreferences not implemented";
+}
+
 getRawStorageObject = function(){
   throw "getRawStorageObject not implementd";
 }
@@ -95,13 +99,12 @@ getStorage = function(sender, key) {
   return value;
 }
 
-getSettingHideListingNotes = function() {
-  var storage = getRawStorageObject();
-  var result = (storage["hideListingNotes"] === "true");
+getPreferenceHideListingNotes = function() {
+  var preferences = getPreferences();
+  var result = (String(preferences["hideListingNotes"]) === "true");
 
   return result;
 }
-
 
 //Post message to google drive via REST API
 //Reference: https://developers.google.com/drive/web/quickstart/quickstart-js
@@ -489,7 +492,7 @@ sendSummaryNotes = function(sender, pullList, resultList){
 }
 
 pullNotes = function(sender, pendingPullList){
-  var hideListingNotes = getSettingHideListingNotes();
+  var hideListingNotes = getPreferenceHideListingNotes();
 
   if(hideListingNotes){
     debugLog("@482, skipped pulling because settings -> hide listing notes");

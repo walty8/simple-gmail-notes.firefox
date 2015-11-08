@@ -31,6 +31,12 @@ getRawStorageObject = function(){
   return ss.storage
 }
 
+getPreferences = function(){
+  var preferences = require("sdk/simple-prefs").prefs;
+
+  return preferences;
+}
+
 sendContentMessage = function(sender, message) {
   debugLog("Sending message", sender, message);
   sender.worker.port.emit("SGN_background", message); 
