@@ -6,5 +6,5 @@
  */
 
 isDebug = function(callback){
-  return false; //no debugging for page script
+  return true; //no debugging for page script
 }

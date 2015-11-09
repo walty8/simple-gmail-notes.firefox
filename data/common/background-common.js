@@ -19,7 +19,7 @@ var settings = {
 } 
 
 /*
- * Callback declarations
+ * Interface declarations
  *
  * The following methods MUST be implemented by the Firefox / Chrome extension
  */
