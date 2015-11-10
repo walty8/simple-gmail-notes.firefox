@@ -23,7 +23,7 @@ setupBackgroundEventsListener = function(callback) {
 }
 
 isDebug = function(callback) {
-  return true;  //turn on this only if u want to check initilization part
+  //return true;  //turn on this only if u want to check initilization part
   return false;
 }
 
