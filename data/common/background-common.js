@@ -152,6 +152,7 @@ postNote = function(sender, messageId, gdriveFolderId, gdriveNoteId, content){
       data: multipartRequestBody,
       success: function(data){
         debugLog("message posted successfully");
+        sendContentMessage(sender, {action:"revoke_summary_note", messageId: messageId});
       },
       error: function(data){
         sendContentMessage(sender, {action:"show_error", 
@@ -536,7 +537,6 @@ setupListeners = function(sender, request){
       postNote(sender, request.messageId, 
                  request.gdriveFolderId, request.gdriveNoteId, 
                  request.content);
-      sendContentMessage(sender, {action:"revoke_summary_note", messageId: request.messageId});
       break;
     case "initialize":
       initialize(sender, request.messageId);

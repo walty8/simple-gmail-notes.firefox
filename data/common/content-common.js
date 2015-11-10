@@ -8,7 +8,7 @@
  */
 
 var settings = {
-  MAX_RETRY_COUNT : 20,
+  MAX_RETRY_COUNT : 20
 }
 
 /*
@@ -23,7 +23,7 @@ setupBackgroundEventsListener = function(callback) {
 }
 
 isDebug = function(callback) {
-  //return true;  //turn on this only if u want to check initilization part
+  return true;  //turn on this only if u want to check initilization part
   return false;
 }
 
@@ -109,6 +109,23 @@ showLogoutPrompt = function(email, retryCount){
     if(retryCount > 0 )
         setTimeout(showLogoutPrompt, 100, email, retryCount);
   }
+}
+
+//http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery#22429679
+function hashFnv32a(str, asString, seed) {
+    /*jshint bitwise:false */
+    var i, l,
+        hval = (seed === undefined) ? 0x811c9dc5 : seed;
+
+    for (i = 0, l = str.length; i < l; i++) {
+        hval ^= str.charCodeAt(i);
+        hval += (hval << 1) + (hval << 4) + (hval << 7) + (hval << 8) + (hval << 24);
+    }
+    if( asString ){
+        // Convert to 8 digit hex string
+        return ("0000000" + (hval >>> 0).toString(16)).substr(-8);
+    }
+    return hval >>> 0;
 }
 
 
@@ -218,17 +235,20 @@ _updateNotesOnSummary = function(userEmail, pulledNoteList){
     return mailNode.find(".sgn").length > 0;
   }
 
-  var markNote = function(mailNode, note){
+  var markNote = function(mailNode, note, emailKey){
     var titleNode = getTitleNode(mailNode);
     var labelNode;
 
+    var sgnId = "sgn_" + hashFnv32a(emailKey, true);
+
     if(note){
-      labelNode = $('<div class="ar as sgn"><div class="at" title="Simple Gmail Notes: ' + note + '" style="background-color: #ddd; border-color: #ddd;">' + 
+      labelNode = $('<div class="ar as sgn" id="' + sgnId + '">' +
+                            '<div class="at" title="Simple Gmail Notes: ' + note + '" style="background-color: #ddd; border-color: #ddd;">' + 
                             '<div class="au" style="border-color:#ddd"><div class="av" style="color: #666">[' + note.substring(0, 20) + ']</div></div>' + 
                        '</div></div>');
     }
     else {
-      labelNode = $('<div style="display:none" class="sgn"></div>');
+      labelNode = $('<div style="display:none" class="sgn" id="' + sgnId + '"></div>');
     }
 
     titleNode.before(labelNode);
@@ -251,7 +271,7 @@ _updateNotesOnSummary = function(userEmail, pulledNoteList){
     //debugLog("Working on email:", emailKey);
     if(!hasMarkedNote($(this))){
       var emailNote = gEmailKeyNoteDict[emailKey];
-      markNote($(this), emailNote);
+      markNote($(this), emailNote, emailKey);
     }
   });
 }
@@ -349,9 +369,16 @@ setupListeners = function(){
         debugLog("Trying to revoke summary note", request);
         var emailId = request.messageId;
         var emailKey = gEmailIdKeyDict[emailId];
+        var sgnId = "sgn_" + hashFnv32a(emailKey, true);
+
+        $("#" + sgnId).remove();
 
         delete gEmailKeyNoteDict[emailKey];
         delete gEmailIdKeyDict[emailId];
+
+        debugLog("Requesting force reload");
+        sendEventMessage("SGN_force_reload");
+
         break;
 
       default:

@@ -31,7 +31,7 @@ var refresh = function(f) {
 
 var sendEventMessage = function(eventName, eventDetail){
   if(eventDetail == undefined){
-    eventDetail = {}
+    eventDetail = {};
   }
 
   eventDetail.email = gmail.get.user_email();
@@ -69,7 +69,7 @@ var pullNotes = function(){
 
 
   if(!$("tr.zA").length || gmail.check.is_inside_email() ||
-     $("tr.zA:visible").find(".sgn").length){
+     $("tr.zA:visible").find(".sgn").length == $("tr.zA:visible").length){
     debugLog("Skipped pulling");
     isPulling = false;
     return;
