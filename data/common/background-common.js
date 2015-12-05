@@ -472,7 +472,8 @@ sendSummaryNotes = function(sender, pullList, resultList){
   var result = [];
   var itemDict = {};
   iterateArray(resultList, function(index, emailItem){
-    if(emailItem.description){
+    //we collect the first one
+    if(emailItem.description && !itemDict[emailItem.title]){
       itemDict[emailItem.title] = emailItem.description;
     }
   });
