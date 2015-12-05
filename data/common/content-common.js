@@ -30,6 +30,23 @@ isDebug = function(callback) {
 /*
  * Utilities
  */
+//http://stackoverflow.com/questions/24816/escaping-html-strings-with-jquery#12034334
+ var entityMap = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': '&quot;',
+    "'": '&#39;',
+    "/": '&#x2F;'
+  };
+
+var escapeHtml = function(string) {
+  return String(string).replace(/[&<>"'\/]/g, function (s) {
+    return entityMap[s];
+  });
+}
+
+
 var sendEventMessage = function(eventName, eventDetail){
   if(eventDetail == undefined){
     eventDetail = {}
@@ -227,6 +244,7 @@ _updateNotesOnSummary = function(userEmail, pulledNoteList){
 
     var time = mailNode.find(".xW").find("span").last().attr("title");
     var emailKey = title + "|" + sender + "|" + time;
+    emailKey = escapeHtml(emailKey)
 
     return emailKey;
   }
@@ -243,8 +261,8 @@ _updateNotesOnSummary = function(userEmail, pulledNoteList){
 
     if(note){
       labelNode = $('<div class="ar as sgn" id="' + sgnId + '">' +
-                            '<div class="at" title="Simple Gmail Notes: ' + note + '" style="background-color: #ddd; border-color: #ddd;">' + 
-                            '<div class="au" style="border-color:#ddd"><div class="av" style="color: #666">[' + note.substring(0, 20) + ']</div></div>' + 
+                            '<div class="at" title="Simple Gmail Notes: ' + escapeHtml(note) + '" style="background-color: #ddd; border-color: #ddd;">' + 
+                            '<div class="au" style="border-color:#ddd"><div class="av" style="color: #666">[' + escapeHtml(note.substring(0, 20)) + ']</div></div>' + 
                        '</div></div>');
     }
     else {
@@ -293,7 +311,7 @@ pullNotes = function(userEmail, emailList){
 
     emailKey = email.title + "|" + email.sender + "|" + email.time;
     //remove html tag
-    emailKey = $("<div/>").html(emailKey).html();
+    emailKey = escapeHtml(emailKey);
 
     if(gEmailKeyNoteDict[emailKey] == undefined){
       pendingPullList.push(email.id);
