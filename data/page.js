@@ -5,7 +5,8 @@
  * License: GPLv3
  */
 
-isDebug = function(callback){
-  //return true;
-  return false; //no debugging for page script
-}
+(function(sgn){
+  sgn.isDebug = function(callback){
+    return false; //no debugging for page script
+  }
+}(window.sgn = window.sgn || {}));
