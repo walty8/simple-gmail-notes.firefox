@@ -26,7 +26,7 @@
 
   var refresh = function(f) {
     if( (/in/.test(document.readyState)) || (undefined === window.Gmail) ) {
-      setTimeout('refresh(' + f + ')', 10);
+      setTimeout(refresh, 10, f);
     } else {
       f();
     }

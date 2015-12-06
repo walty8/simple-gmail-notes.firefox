@@ -310,7 +310,6 @@ pullNotes = function(userEmail, emailList){
     }
 
     emailKey = email.title + "|" + email.sender + "|" + email.time;
-    //remove html tag
     emailKey = escapeHtml(emailKey);
 
     if(gEmailKeyNoteDict[emailKey] == undefined){
@@ -408,6 +407,10 @@ setupListeners = function(){
   document.addEventListener('SGN_setup_notes', function(e) {
     var email = e.detail.email;
     var messageId = e.detail.messageId;
+
+    //this event could be triggered by other page scripts
+    email = escapeHtml(email);
+    messageId = escapeHtml(messageId);
     
     setupNotes(email, messageId);
   });
@@ -417,7 +420,11 @@ setupListeners = function(){
     var email = e.detail.email;
     var emailList = e.detail.emailList;
 
+    //this event could be triggered by other page scripts
+    email = escapeHtml(email);
+
     pullNotes(email, emailList);
+
   });
 }
 
