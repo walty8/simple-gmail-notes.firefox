@@ -30,24 +30,47 @@ isDebug = function(callback) {
 /*
  * Utilities
  */
-//http://stackoverflow.com/questions/24816/escaping-html-strings-with-jquery#12034334
- var entityMap = {
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': '&quot;',
-    "'": '&#39;',
-    "/": '&#x2F;'
-  };
-
-var escapeHtml = function(string) {
-  return String(string).replace(/[&<>"'\/]/g, function (s) {
-    return entityMap[s];
-  });
+htmlEscape = function(str) {
+    return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
 }
 
+// I needed the opposite function today, so adding here too:
+htmlUnescape = function(value){
+    return String(value)
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&');
+}
 
-var sendEventMessage = function(eventName, eventDetail){
+//http://stackoverflow.com/questions/4434076/best-way-to-alphanumeric-check-in-javascript#25352300
+isAlphaNumeric = function(str) {
+  var code, i, len;
+
+  for (i = 0, len = str.length; i < len; i++) {
+    code = str.charCodeAt(i);
+    if (!(code > 47 && code < 58) && // numeric (0-9)
+        !(code > 64 && code < 91) && // upper alpha (A-Z)
+        !(code > 96 && code < 123)) { // lower alpha (a-z)
+      return false;
+    }
+  }
+  return true;
+};
+
+//http://stackoverflow.com/questions/46155/validate-email-address-in-javascript#1373724
+isValidEmail = function(email) {
+  var re = /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i; 
+  return re.test(email);
+}
+  
+sendEventMessage = function(eventName, eventDetail){
   if(eventDetail == undefined){
     eventDetail = {}
   }
@@ -129,20 +152,29 @@ showLogoutPrompt = function(email, retryCount){
 }
 
 //http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery#22429679
-function hashFnv32a(str, asString, seed) {
-    /*jshint bitwise:false */
-    var i, l,
-        hval = (seed === undefined) ? 0x811c9dc5 : seed;
+hashFnv32a = function(str, asString, seed) {
+  /*jshint bitwise:false */
+  var i, l,
+      hval = (seed === undefined) ? 0x811c9dc5 : seed;
 
-    for (i = 0, l = str.length; i < l; i++) {
-        hval ^= str.charCodeAt(i);
-        hval += (hval << 1) + (hval << 4) + (hval << 7) + (hval << 8) + (hval << 24);
-    }
-    if( asString ){
-        // Convert to 8 digit hex string
-        return ("0000000" + (hval >>> 0).toString(16)).substr(-8);
-    }
-    return hval >>> 0;
+  for (i = 0, l = str.length; i < l; i++) {
+    hval ^= str.charCodeAt(i);
+    hval += (hval << 1) + (hval << 4) + (hval << 7) + (hval << 8) + (hval << 24);
+  }
+  if( asString ){
+    // Convert to 8 digit hex string
+    return ("0000000" + (hval >>> 0).toString(16)).substr(-8);
+  }
+  return hval >>> 0;
+}
+
+composeEmailKey = function(title, sender, time){
+  var emailKey = title + "|" + sender + "|" + time;
+
+  //in case already escaped
+  emailKey = htmlUnescape(emailKey);
+  emailKey = htmlEscape(emailKey);
+  return emailKey;
 }
 
 
@@ -243,8 +275,11 @@ _updateNotesOnSummary = function(userEmail, pulledNoteList){
     }
 
     var time = mailNode.find(".xW").find("span").last().attr("title");
-    var emailKey = title + "|" + sender + "|" + time;
-    emailKey = escapeHtml(emailKey)
+    var emailKey = composeEmailKey(title, sender, time);
+
+    debugLog("@249, email key:" + emailKey);
+
+
 
     return emailKey;
   }
@@ -261,8 +296,8 @@ _updateNotesOnSummary = function(userEmail, pulledNoteList){
 
     if(note){
       labelNode = $('<div class="ar as sgn" id="' + sgnId + '">' +
-                            '<div class="at" title="Simple Gmail Notes: ' + escapeHtml(note) + '" style="background-color: #ddd; border-color: #ddd;">' + 
-                            '<div class="au" style="border-color:#ddd"><div class="av" style="color: #666">[' + escapeHtml(note.substring(0, 20)) + ']</div></div>' + 
+                            '<div class="at" title="Simple Gmail Notes: ' + htmlEscape(note) + '" style="background-color: #ddd; border-color: #ddd;">' + 
+                            '<div class="au" style="border-color:#ddd"><div class="av" style="color: #666">[' + htmlEscape(note.substring(0, 20)) + ']</div></div>' + 
                        '</div></div>');
     }
     else {
@@ -309,8 +344,9 @@ pullNotes = function(userEmail, emailList){
       email.sender = userEmail;
     }
 
-    emailKey = email.title + "|" + email.sender + "|" + email.time;
-    emailKey = escapeHtml(emailKey);
+    var emailKey = composeEmailKey(email.title, email.sender, email.time);
+    debugLog("@318: email key:" + emailKey);
+
 
     if(gEmailKeyNoteDict[emailKey] == undefined){
       pendingPullList.push(email.id);
@@ -328,6 +364,7 @@ pullNotes = function(userEmail, emailList){
     updateNotesOnSummary(userEmail, [])
   }
 }
+
 
 setupListeners = function(){
   setupBackgroundEventsListener(function(request){
@@ -408,10 +445,16 @@ setupListeners = function(){
     var email = e.detail.email;
     var messageId = e.detail.messageId;
 
-    //this event could be triggered by other page scripts
-    email = escapeHtml(email);
-    messageId = escapeHtml(messageId);
-    
+    if(!isAlphaNumeric(messageId)){
+      debugLog("invalid message ID (setup notes): " + messageId);
+      return;
+    }
+
+    if(!isValidEmail(email)){
+      debugLog("invalid email (setup notes): " + email);
+      return;
+    }
+
     setupNotes(email, messageId);
   });
 
@@ -420,8 +463,17 @@ setupListeners = function(){
     var email = e.detail.email;
     var emailList = e.detail.emailList;
 
-    //this event could be triggered by other page scripts
-    email = escapeHtml(email);
+    if(!isValidEmail(email)){
+      debugLog("invalid email (pull notes): " + email);
+      return;
+    }
+
+    $.each(emailList, function(_index, _email){
+      if(!isAlphaNumeric(_email.id)){
+        debugLog("invalid message ID (pull notes): " + _email.id);
+        return;
+      }
+    });
 
     pullNotes(email, emailList);
 
