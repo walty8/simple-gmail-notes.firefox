@@ -5,8 +5,9 @@
  * License: GPLv3
  *
  * This script is going to be shared for both Firefox and Chrome extensions.
+ *
  * Note that jquery function calls should be avoided in this file, because 
- * jquery could not be imported to the background page, see sendAjax and 
+ * jquery could not be imported to the FF background page, see sendAjax and 
  * iterateArray for the samples.
  *
  */

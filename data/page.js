@@ -5,9 +5,9 @@
  * License: GPLv3
  */
 
-(function(sgn){
-  sgn.isDebug = function(callback){
+(function(SimpleGmailNotes){
+  SimpleGmailNotes.isDebug = function(callback){
     //return true;
-    return false; //no debugging for page script
+    return true; //no debugging for page script
   }
-}(window.sgn = window.sgn || {}));
+}(window.SimpleGmailNotes = window.SimpleGmailNotes || {}));

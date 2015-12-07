@@ -1,7 +1,7 @@
 {
   "title": "Simple Gmail Notes",
     "name": "simple-gmail-notes",
-    "version": "0.3.4",
+    "version": "0.3.5",
     "description": "Add notes to email threads in Gmail.",
     "main": "background.js",
     "author": "Walty Yeung",

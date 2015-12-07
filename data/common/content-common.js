@@ -172,7 +172,6 @@ composeEmailKey = function(title, sender, time){
   var emailKey = title + "|" + sender + "|" + time;
 
   //in case already escaped
-  emailKey = htmlUnescape(emailKey);
   emailKey = htmlEscape(emailKey);
   return emailKey;
 }
@@ -344,7 +343,7 @@ pullNotes = function(userEmail, emailList){
       email.sender = userEmail;
     }
 
-    var emailKey = composeEmailKey(email.title, email.sender, email.time);
+    var emailKey = composeEmailKey(htmlUnescape(email.title), email.sender, email.time);
     debugLog("@318: email key:" + emailKey);
 
 

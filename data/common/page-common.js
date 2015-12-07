@@ -2,22 +2,31 @@
  * Simple Gmail Notes 
  * https://github.com/walty8
  * Copyright (C) 2015 Walty Yeung <walty8@gmail.com>
+ *
+ * This script is going to be shared for both Firefox and Chrome extensions.
  */
 
+//var sgnJQuery = $.noConflict(true);
 
-(function(sgn){
+(function(SimpleGmailNotes, localJQuery){
+  var $ = localJQuery;
+ // alert("@11: " + localJQuery);
+
+
+//  var $ = localJQuery;
+//  alert("@12: " + $);
 
   /* 
    * callback declarations 
    */
-  sgn.isDebug = function(callback) {
+  SimpleGmailNotes.isDebug = function(callback) {
     return false;
   }
   /*** end of callback implementation ***/
 
   var debugLog = function()
   {
-    if (sgn.isDebug()) {
+    if (SimpleGmailNotes.isDebug()) {
         console.log.apply(console, arguments);
     }
   }
@@ -91,7 +100,7 @@
   }
 
   var main = function(){
-    gmail = new Gmail();
+    gmail = new Gmail(localJQuery);
 
     gmail.observe.on('open_email', function(obj){
       debugLog("simple-gmail-notes: open email event", obj);
@@ -113,4 +122,4 @@
 
   refresh(main);
 
-}(window.sgn = window.sgn || {}));
+}(window.SimpleGmailNotes = window.SimpleGmailNotes || {}, $.noConflict(true)));
