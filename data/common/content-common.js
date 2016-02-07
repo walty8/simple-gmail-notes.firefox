@@ -254,11 +254,11 @@ setupNotes = function(email, messageId){
   var searchLogoutPrompt = $("<div class='sgn_prompt_logout'/></div>" )
       .html("<span class='sgn_current_connection'>Simple Gmail Notes connected to Google Drive of " +
               "'<span class='sgn_user'></span>' </span>" +
-              "<a class='sgn_logout sgn_action' href='#'>" + 
+              "<a class='sgn_logout sgn_action' >" + 
               "<img title='Log Out' src='" + getIconBaseUrl() + "/logout.24.png'></a>" + 
-              "<a class='sgn_open_options sgn_action' href='#'>" +
+              "<a class='sgn_open_options sgn_action'>" +
               "<img title='Preferences' src='" + getIconBaseUrl() + "/preferences.24.png'></a>" +
-              "<a class='sgn_action sgn_search' href='#' target='_blank'>" +
+              "<a class='sgn_action sgn_search' target='_blank'>" +
               "<img title='Search' src='" + getIconBaseUrl() + "/search.24.png'/></a> " +
               "")
       .hide();
