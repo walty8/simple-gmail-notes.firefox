@@ -25,7 +25,6 @@ var isDebugCache = null;
 isDebug = function(callback){
   //console.log("debug cache:" + typeof(isDebugCache));
   //return false;
-  return true;
   return isDebugCache == true;
 }
 

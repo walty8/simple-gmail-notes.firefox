@@ -90,7 +90,8 @@ sendEventMessage = function(eventName, eventDetail){
 
 debugLog = function()
 {
-  if (isDebug()) {
+  var debugStatus = isDebug();
+  if (debugStatus) {
       console.log.apply(console, arguments);
   }
 }

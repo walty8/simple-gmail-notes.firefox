@@ -194,7 +194,7 @@ pageMod.PageMod({
   include: self.data.url('options.html'),
   contentScriptFile: [ self.data.url("lib/jquery-1.11.3.min.js"),
                         self.data.url("lib/jquery.simple-color.js"),
-                        self.data.url("options.js")],
+                        self.data.url("common/options.js")],
   contentScriptWhen: 'end',  
   onAttach: backgroundInit
 
