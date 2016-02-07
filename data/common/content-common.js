@@ -22,10 +22,20 @@ setupBackgroundEventsListener = function(callback) {
   throw "setupBackgroundEventsListener not implemented";
 }
 
+getIconBaseUrl = function(){
+  throw "getIconBaseUrl not implemented";
+}
+
+openOptionsPage = function(){
+  throw "openOptionsPage not implemented";
+   
+}
+
 isDebug = function(callback) {
   //return true;  //turn on this only if u want to check initilization part
   return false;
 }
+
 
 /*
  * Utilities
@@ -143,6 +153,8 @@ showLogoutPrompt = function(email, retryCount){
   if(email)
     $(".sgn_prompt_logout").find(".sgn_user").text(email);
 
+  $(".sgn_search").attr("href", getSearchNoteURL());
+
   if(!$(".sgn_prompt_logout").is(":visible")){  //keep trying until it's visible
     debugLog("Retry to show prompt");
     retryCount = retryCount - 1;
@@ -153,6 +165,9 @@ showLogoutPrompt = function(email, retryCount){
 
 //http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery#22429679
 hashFnv32a = function(str, asString, seed) {
+  if(!str)
+    return "";
+
   /*jshint bitwise:false */
   var i, l,
       hval = (seed === undefined) ? 0x811c9dc5 : seed;
@@ -168,83 +183,128 @@ hashFnv32a = function(str, asString, seed) {
   return hval >>> 0;
 }
 
+stripHtml = function(value){
+  return value.replace(/<(?:.|\n)*?>/gm, '');
+
+}
+
 composeEmailKey = function(title, sender, time){
-  var emailKey = title + "|" + sender + "|" + time;
+  var emailKey = sender + "|" + time + "|" + stripHtml(title);
+
 
   //in case already escaped
   emailKey = htmlEscape(emailKey);
   return emailKey;
 }
 
+getGoogleAccountId = function(){
+  var re = /mail\/u\/(\d+)/;
+  var userId = "0";
+  var match = window.location.href.match(re);
+  if(match && match.length > 1)
+    userId = match[1];
+
+  return userId;
+}
+
+getSearchNoteURL = function(){
+  //users may have logged into mutliple email addresses
+  var userId = getGoogleAccountId();
+  var searchUrl = "https://drive.google.com/drive/u/" + userId + "/folders/" + gCurrentGDriveFolderId;
+
+  return searchUrl;
+}
 
 //global variables to mark the status of current tab
 var gCurrentGDriveNoteId = "";
 var gCurrentGDriveFolderId = "";
 var gPreviousContent = "";
 
+var gCurrentEmailSubject = "";
+var gCurrentEmailDatetime = "";
+var gCurrentEmailSender = "";
+
 setupNotes = function(email, messageId){
   debugLog("Start to set up notes");
   debugLog("Email", email);
 
-  var injectionNode = $(".nH.if"); //hopefully this one is stable
+  $(".nH.if").prepend($("<div></div>", {
+    "class" : "sgn_container"
+  })); //hopefully this one is stable
+
+  var injectionNode = $(".sgn_container");
+
   var textAreaNode = $("<textarea></textarea>", {
     "class": "sgn_input",
     "text": "",
     "disabled":"disabled"
-  }).css({
-    "width": "100%", 
-    "height": "72px",
-    "color": "gray",
-    "margin": "5px",
   }).blur(function(){
     var content = $(this).val();
     if(gPreviousContent != content){
       sendBackgroundMessage({action:"post_note", email:email, messageId:messageId, 
+                   emailTitleSuffix: gCurrentEmailSubject,
                    gdriveNoteId:gCurrentGDriveNoteId, 
                    gdriveFolderId:gCurrentGDriveFolderId, content:content});
     }
 	  return true;
 	});
 
-  var logoutPrompt = $("<div class='sgn_prompt_logout'/></div>" )
-      .html("Simple Gmail Notes connected to Google Drive of " +
-              "'<span class='sgn_user'></span>' " +
-              "(<a class='sgn_logout sgn_action'>Disconnect</a>)")
-      .css({"display":"none",
-            "color": "gray",
-            "margin": "5px"});
+
+  var searchLogoutPrompt = $("<div class='sgn_prompt_logout'/></div>" )
+      .html("<span class='sgn_current_connection'>Simple Gmail Notes connected to Google Drive of " +
+              "'<span class='sgn_user'></span>' </span>" +
+              "<a class='sgn_logout sgn_action' href='#'>" + 
+              "<img title='Log Out' src='" + getIconBaseUrl() + "/logout.24.png'></a>" + 
+              "<a class='sgn_open_options sgn_action' href='#'>" +
+              "<img title='Preferences' src='" + getIconBaseUrl() + "/preferences.24.png'></a>" +
+              "<a class='sgn_action sgn_search' href='#' target='_blank'>" +
+              "<img title='Search' src='" + getIconBaseUrl() + "/search.24.png'/></a> " +
+              "")
+      .hide();
   var loginPrompt = $("<div class='sgn_prompt_login'/></div>" )
       .html("Please <a class='sgn_login sgn_action'>connect</a> to " +
               "your Google Drive account to start using Simple Gmail Notes" )
-      .css({"display":"none",
-            "color": "gray",
-            "margin": "5px"});
-  var emptyPrompt = $("<div class='sgn_padding'>&nbsp;<div>")
-                      .css({"margin":"5px"});
-  var errorPrompt = $("<div class='sgn_error'><div>")
+      .hide();
+  var emptyPrompt = $("<div class='sgn_padding'>&nbsp;<div>");
+  var revokeErrorPrompt = $("<div class='sgn_error sgn_revoke'><div>")
                       .html("Error connecting to Google Drive <span class='sgn_error_timestamp'></span>, " +
                           "please try to <a class='sgn_reconnect sgn_action'>connect</a> again. \n" +
                           "If error persists after 5 attempts, you may try to manually " +
-                          "<a href='https://accounts.google.com/b/0/IssuedAuthSubTokens'>revoke</a> previous tokens.")
-                      .css({"margin":"5px", "color":"red", "display":"none"});
+                          "<a href='https://accounts.google.com/b/" + getGoogleAccountId() + 
+                          "/IssuedAuthSubTokens'>revoke</a> previous tokens.")
+
+  var userErrorPrompt = $("<div class='sgn_error sgn_user'></div>")
+                            .html("Failed to get Google Driver User");
+
+  var loginErrorPrompt = $("<div class='sgn_error sgn_login'></div>")
+                            .html("Failed to login Google Drive");
+
+  var customErrorPrompt = $("<div class='sgn_error sgn_custom'></div>")
+
 
   $(".sgn_input").remove();
   $(".sgn_prompt_login").remove();
   $(".sgn_prompt_logout").remove();
 
-  injectionNode.prepend(errorPrompt);
+  injectionNode.prepend(revokeErrorPrompt);
+  injectionNode.prepend(userErrorPrompt);
+  injectionNode.prepend(loginErrorPrompt);
+  injectionNode.prepend(customErrorPrompt);
+
   injectionNode.prepend(textAreaNode);
   injectionNode.prepend(loginPrompt);
-  injectionNode.prepend(logoutPrompt);
+  injectionNode.prepend(searchLogoutPrompt);
   injectionNode.prepend(emptyPrompt);
+  $(".sgn_error").hide();
 
-  $(".sgn_action").css({
-    "cursor":"pointer",
-    "text-decoration":"underline"
-  }).click(function(){
+
+  $(".sgn_action").click(function(){
     var classList =$(this).attr('class').split(/\s+/);
     $.each(classList, function(index, item){
-      if(item != 'sgn_action'){
+      if(item == 'sgn_open_options'){
+        openOptionsPage();
+      }
+      else if(item != 'sgn_action'){  //for all other actions
           var action = item.substring(4);   //remove the 'sgn_' prefix
           sendBackgroundMessage({action: action, email: email, messageId:messageId});
       }
@@ -257,23 +317,55 @@ setupNotes = function(email, messageId){
 }
 
 
+updateNotesOnSummary = function(userEmail, pulledNoteList){
+  setTimeout(function(){
+    _updateNotesOnSummary(userEmail, pulledNoteList);
+  }, 300);  //wait until gmail script processing finished
+}
+
 
 var gEmailKeyNoteDict = {};
 _updateNotesOnSummary = function(userEmail, pulledNoteList){
-  var getTitleNode = function(mailNode){
-    return $(mailNode).find(".xT .y6").find("span").first();
+  var getTitle = function(mailNode){
+    var hook = $(mailNode).find(".xT .y6");
+
+    if(!hook.length)  //vertical split view
+      hook = $(mailNode).next().find(".xT .y6");
+
+    return hook.find("span").first().text();
+  }
+
+  var getTime = function(mailNode) {
+    var hook = $(mailNode).find(".xW");
+
+    if(!hook.length)  //vertical split view
+      hook = $(mailNode).find(".apm");
+
+    return hook.find("span").last().attr("title");
+  }
+
+  var addLabelToTitle = function(mailNode, labelNode){
+    var hook = $(mailNode).find(".xT .y6");
+
+    if(!hook.length){ //vertical split view
+      hook = $(mailNode).next().next().find(".apB .apu");
+    }
+
+    if(!hook.find(".sgn").length)
+      hook.prepend(labelNode);
   }
 
   var getEmailKey = function(mailNode){
-    var titleNode = getTitleNode(mailNode);
-    var title = titleNode.text();
-    var sender = mailNode.find(".yW .yP").attr("email");
+    //var titleNode = getTitleNode(mailNode);
+    //var title = titleNode.text();
+    var title = getTitle(mailNode);
+    var sender = mailNode.find(".yW .yP, .yW .zF").last().attr("email");
 
-    if($(location).attr("href").indexOf("#sent") > 0){
-      sender = userEmail;
-    }
+    //if($(location).attr("href").indexOf("#sent") > 0){
+     // sender = userEmail;
+    //}
 
-    var time = mailNode.find(".xW").find("span").last().attr("title");
+    var time = getTime(mailNode);
     var emailKey = composeEmailKey(title, sender, time);
 
     debugLog("@249, email key:" + emailKey);
@@ -288,22 +380,22 @@ _updateNotesOnSummary = function(userEmail, pulledNoteList){
   }
 
   var markNote = function(mailNode, note, emailKey){
-    var titleNode = getTitleNode(mailNode);
+    //var titleNode = getTitleNode(mailNode);
     var labelNode;
 
     var sgnId = "sgn_" + hashFnv32a(emailKey, true);
 
-    if(note){
+    if(note && note.description){
       labelNode = $('<div class="ar as sgn" id="' + sgnId + '">' +
-                            '<div class="at" title="Simple Gmail Notes: ' + htmlEscape(note) + '" style="background-color: #ddd; border-color: #ddd;">' + 
-                            '<div class="au" style="border-color:#ddd"><div class="av" style="color: #666">[' + htmlEscape(note.substring(0, 20)) + ']</div></div>' + 
+                            '<div class="at" title="Simple Gmail Notes: ' + htmlEscape(note.description) + '" style="background-color: #ddd; border-color: #ddd;">' + 
+                            '<div class="au" style="border-color:#ddd"><div class="av" style="color: #666">' + htmlEscape(note.short_description) + '</div></div>' + 
                        '</div></div>');
     }
     else {
       labelNode = $('<div style="display:none" class="sgn" id="' + sgnId + '"></div>');
     }
 
-    titleNode.before(labelNode);
+    addLabelToTitle(mailNode, labelNode);
   }
 
   if(pulledNoteList && pulledNoteList.length){
@@ -312,13 +404,14 @@ _updateNotesOnSummary = function(userEmail, pulledNoteList){
              pulledNoteList.length);
     $.each(pulledNoteList, function(index, item){
       var emailKey = gEmailIdKeyDict[item.title];
-      gEmailKeyNoteDict[emailKey] = item.description;  
+      gEmailKeyNoteDict[emailKey] = {"description": item.description, 
+                                     "short_description": item.short_description};
     });
 
   }
 
   //loop for each email tr
-  $("tr.zA").each(function(){
+  $("tr.zA[id]").each(function(){
     var emailKey = getEmailKey($(this));
     //debugLog("Working on email:", emailKey);
     if(!hasMarkedNote($(this))){
@@ -328,15 +421,11 @@ _updateNotesOnSummary = function(userEmail, pulledNoteList){
   });
 }
 
-updateNotesOnSummary = function(userEmail, pulledNoteList){
-  setTimeout(function(){
-    _updateNotesOnSummary(userEmail, pulledNoteList);
-  }, 300);  //wait until gmail script processing finished
-}
-
 var gEmailIdKeyDict = {};
 pullNotes = function(userEmail, emailList){
   var pendingPullList = [];
+
+  debugLog("@418, pulling notes");
 
   $.each(emailList, function(index, email){
     if(!email.sender){
@@ -386,12 +475,19 @@ setupListeners = function(){
         break;
       case "show_error":
         var errorMessage = request.message;
+        var type = request.type;
+
         debugLog("Error in response:", errorMessage);
         var date = new Date();
         var timestamp = date.getHours() + ":" + date.getMinutes() + ":" + 
                           date.getSeconds();
         $(".sgn_error_timestamp").text("(" +  timestamp + ")");
-        $(".sgn_error").show();
+        $(".sgn_error").hide();
+        $(".sgn_error.sgn_" + type).show();
+        if(type == "custom"){
+          $(".sgn_error.sgn_custom").text(errorMessage);
+        }
+
         break;
       case "update_user":
         $(".sgn_user").text(request.email);
@@ -426,6 +522,7 @@ setupListeners = function(){
 
         $("#" + sgnId).remove();
 
+        debugLog("@447", emailKey, emailId);
         delete gEmailKeyNoteDict[emailKey];
         delete gEmailIdKeyDict[emailId];
 
@@ -434,6 +531,39 @@ setupListeners = function(){
 
         break;
 
+      case "update_preferences":
+        var preferences = request.preferences;
+
+        var noteHeight = preferences["noteHeight"];
+        if(noteHeight)
+          $(".sgn_input").css("height", parseInt(noteHeight) * 18 +"px");
+
+        var fontColor = preferences["fontColor"];
+        if(fontColor)
+          $(".sgn_input").css("color", htmlEscape(fontColor));
+
+        var backgroundColor = preferences["backgroundColor"];
+        if(backgroundColor)
+          $(".sgn_input").css("background-color", backgroundColor);
+
+        var notePosition = preferences["notePosition"];
+        if(notePosition == "bottom"){
+          debugLog("@485, move to bottom");
+          $(".sgn_container").hide();
+          $(".sgn_container").first().show();
+          //$(".nH.aHU").find(".sgn_container").remove();
+          $(".nH.aHU").append($(".sgn_container").first());
+        }
+
+        var showConnectionPrompt = (preferences["showConnectionPrompt"] !== "false");
+        if(!showConnectionPrompt){
+          $(".sgn_current_connection").hide();
+        }
+
+
+
+        debugLog("@470", preferences);
+        break;
       default:
           debugLog("unknown background request", request);
     }
@@ -455,6 +585,28 @@ setupListeners = function(){
     }
 
     setupNotes(email, messageId);
+  });
+
+  document.addEventListener('SGN_setup_email_info', function(e) {
+    var email = e.detail.email;
+    var messageId = e.detail.messageId;
+
+    if(!isAlphaNumeric(messageId)){
+      debugLog("invalid message ID (setup email info): " + messageId);
+      return;
+    }
+
+    if(!isValidEmail(email)){
+      debugLog("invalid email (setup email info): " + email);
+      return;
+    }
+
+    //for future post note use
+    gCurrentEmailSubject = e.detail.subject;
+    gCurrentEmailDatetime = e.detail.datetime;
+    gCurrentEmailSender = e.detail.sender;
+
+
   });
 
   document.addEventListener('SGN_pull_notes', function(e) {

@@ -6,7 +6,19 @@
  * This script is going to be shared for both Firefox and Chrome extensions.
  */
 
-//var sgnJQuery = $.noConflict(true);
+window.SimpleGmailNotes = window.SimpleGmailNotes || {};
+
+SimpleGmailNotes.refresh = function(f){
+    if( (/in/.test(document.readyState)) || (undefined === window.Gmail) 
+        || (undefined === window.jQuery) ) {
+      setTimeout(SimpleGmailNotes.refresh, 10, f);
+    } else {
+      f();
+    }
+}
+
+
+SimpleGmailNotes.start = function(){
 
 (function(SimpleGmailNotes, localJQuery){
   var $ = localJQuery;
@@ -33,14 +45,6 @@
 
   var gmail;
 
-  var refresh = function(f) {
-    if( (/in/.test(document.readyState)) || (undefined === window.Gmail) ) {
-      setTimeout(refresh, 10, f);
-    } else {
-      f();
-    }
-  }
-
   var sendEventMessage = function(eventName, eventDetail){
     if(eventDetail == undefined){
       eventDetail = {};
@@ -60,6 +64,23 @@
           return;
      
       sendEventMessage('SGN_setup_notes', {messageId:currentPageMessageId});
+
+      
+      //update the email info to the content page
+      gmail.get.email_data_async(currentPageMessageId, function(data){
+        var messageData = data["threads"][currentPageMessageId];
+
+        var datetime = messageData["datetime"];
+        var subject = messageData["subject"];
+        var sender = messageData["from_email"];
+
+        sendEventMessage('SGN_setup_email_info', 
+                         {messageId:currentPageMessageId, 
+                          datetime:datetime,
+                          subject:subject,
+                          sender:sender});
+      });
+
     }, 0);
   }
 
@@ -80,8 +101,11 @@
     isPulling = true;
 
 
-    if(!$("tr.zA").length || gmail.check.is_inside_email() ||
-       $("tr.zA:visible").find(".sgn").length == $("tr.zA:visible").length){
+    debugLog("@104", $("tr.zA:visible").find(".sgn").length, $("tr.zA[id]:visible").length);
+    if(!$("tr.zA").length || 
+       (gmail.check.is_inside_email() && !gmail.check.is_vertical_split() 
+       && !gmail.check.is_horizontal_split()) ||
+       $("tr.zA:visible").find(".sgn").length >= $("tr.zA[id]:visible").length){
       debugLog("Skipped pulling");
       isPulling = false;
       return;
@@ -115,11 +139,19 @@
     setTimeout(pullNotes, 0);
     setInterval(pullNotes, 2000);
 
+    //mainly for debug purpose
+    SimpleGmailNotes.gmail = gmail;
+
   //  gmail.observe.after('http_event', function(obj){
    //   pullNotes();
    // }); 
   }
 
-  refresh(main);
+  main();
 
-}(window.SimpleGmailNotes = window.SimpleGmailNotes || {}, $.noConflict(true)));
+
+}(window.SimpleGmailNotes = window.SimpleGmailNotes || {}, jQuery.noConflict(true)));
+
+} //end of SimpleGmailNotes.start
+
+SimpleGmailNotes.refresh(SimpleGmailNotes.start);

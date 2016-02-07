@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head><title>Simple Gmail Notes Options</title>
+<style>
+  td {
+    padding: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div>
+
+  <table>
+    <tr>
+      <td>
+        Note Abstract Style
+      </td>
+      <td>
+          <select id="abstract_style">
+              <option value="none">(No Abstract)</option>
+              <option value="fixed_SGN">(Fixed) [SGN]</option>
+          </select>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Note height (number of rows)
+      </td>
+      <td>
+        <select id="note_height">
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Note font color
+      </td>
+      <td>
+        <input type="text" id="font_color">
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Note background color
+      </td>
+      <td>
+        <input type="text" id="background_color">
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        Note position
+      </td>
+      <td>
+        <select id="note_position">
+          <option>top</option>
+          <option>bottom</option>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <label for="show_connection_prompt">
+        Show Prompt for Current <br/>Google Drive Account
+      </label>
+      </td>
+      <td>
+        <input type="checkbox" id="show_connection_prompt"/>
+      </td>
+    <tr>
+      <td colspan=2>
+<div id="status"></div>
+<div> <button id="save">Save</button> </div>
+<br/>
+<br/>
+<br/>
+<div> <button id="reset">Reset to Default Values</button> </div>
+      </td>
+  </table>
+</body>
+</html>

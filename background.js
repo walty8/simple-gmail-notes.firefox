@@ -28,13 +28,11 @@ isDebug = function(callback){
 }
 
 getRawStorageObject = function(){
-  return ss.storage
+  return ss.storage;
 }
 
-getPreferences = function(){
-  var preferences = require("sdk/simple-prefs").prefs;
-
-  return preferences;
+getRawPreferences = function(){
+  return ss.storage;
 }
 
 sendContentMessage = function(sender, message) {
@@ -137,12 +135,48 @@ checkLogger = function(sender){
 backgroundInit = function(worker) {
   var dataurl = self.data.url("dummy.html");  //we only care the folder
   dataurl = dataurl.substring(0, dataurl.lastIndexOf('/')); 
-  worker.port.emit("initConent", dataurl);
+  worker.port.emit("initContent", dataurl);
   worker.port.on("SGN_content", function(request){
-    debugLog("Get message to background", request);
+    debugLog("Get content message to background", request);
     sender = {worker: worker, email: request.email};
     setupListeners(sender, request);
   });
+
+  worker.port.on("SGN_options", function(request){
+    debugLog("Get options message to background", request);
+
+    switch(request.action){
+      case "pull_preferences":
+        var preferences = getPreferences();
+        worker.port.emit("SGN_options", {action:"update_preferences", preferences:preferences});
+        return;
+
+      case "push_preferences":
+        var preferences = request.preferences;
+        var rawPreferences = getRawPreferences(); 
+
+        for(var i=0; i<gPreferenceTypes.length; i++){
+          var key = gPreferenceTypes[i];
+          rawPreferences[key] = preferences[key];
+        }
+        return;
+
+      case "open_options":
+        var tabs = require("sdk/tabs");
+        tabWorker = tabs.open({
+          url: self.data.url("options.html"),
+        });
+        return;
+
+      default:
+        debugLog("unknown options message (background)", request.action);
+        return;
+    }
+  });
+}
+
+optionInit = function(){
+
 }
 
 //trigger the background init script, and set up the content script
@@ -151,6 +185,17 @@ pageMod.PageMod({
   contentScriptFile: [self.data.url('lib/jquery-1.11.3.min.js'), 
                       self.data.url('common/content-common.js'),
                       self.data.url('content.js')],
+  contentStyleFile: [self.data.url('css/style.css')],
   contentScriptWhen: 'end',  
   onAttach: backgroundInit
+});
+
+pageMod.PageMod({
+  include: self.data.url('options.html'),
+  contentScriptFile: [ self.data.url("lib/jquery-1.11.3.min.js"),
+                        self.data.url("lib/jquery.simple-color.js"),
+                        self.data.url("options.js")],
+  contentScriptWhen: 'end',  
+  onAttach: backgroundInit
+
 });

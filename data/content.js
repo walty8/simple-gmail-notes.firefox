@@ -24,10 +24,20 @@ setupBackgroundEventsListener = function(callback){
 var isDebugCache = null;
 isDebug = function(callback){
   //console.log("debug cache:" + typeof(isDebugCache));
-  return false;
+  //return false;
   return true;
   return isDebugCache == true;
 }
+
+var gDataURL = "";     //it's to be initialized by 'initContent'
+getIconBaseUrl = function(){
+  return gDataURL + "/image";
+}
+
+var openOptionsPage = function(){
+  self.port.emit("SGN_options", {"action": "open_options"});
+}
+
 //callback implementation end
 
 //initialization scripts
@@ -52,7 +62,12 @@ setupPageScripts = function(dataurl){
   }
 }
 
-self.port.on("initConent", function handleMyMessage(dataurl) {
+
+self.port.on("initContent", function handleMyMessage(dataurl) {
   setupListeners();
   setupPageScripts(dataurl);
+  gDataURL = dataurl
 });
+
+
+

@@ -46,7 +46,7 @@ var Gmail = function(localJQuery) {
     var data = api.tracker.globals[17][23];
     var users = [];
 
-    for(i in data[1]) {
+    for(var i in data[1]) {
       users.push({name : data[1][i][4], email : data[1][i][0]})
     }
 
@@ -333,7 +333,7 @@ var Gmail = function(localJQuery) {
 
     var check = true; // Flag possibly missing in convo view.
 
-    var array_with_flag = api.tracker.globals[17][5][1];
+    var array_with_flag = api.tracker.globals[17][4][1];
 
     for(var i=0; i<array_with_flag.length; i++) {
       var current = array_with_flag[i];
@@ -648,6 +648,10 @@ var Gmail = function(localJQuery) {
       }
     }
 
+    if(typeof params.url.at == 'string') {
+      api.tracker.at = params.url.at;
+    }
+
     var action      = decodeURIComponent(params.url.act);
     var sent_params = params.body_params;
     var email_ids   = (typeof sent_params.t == 'string') ? [sent_params.t] : sent_params.t;
@@ -870,7 +874,8 @@ var Gmail = function(localJQuery) {
           var xhr = this;
           this.onreadystatechange = function(progress) {
             if (this.readyState === this.DONE) {
-              xhr.xhrResponse = api.tools.parse_response(progress.target.responseText);
+              //this one is not stable
+              //xhr.xhrResponse = api.tools.parse_response(progress.target.responseText);
               api.observe.trigger('after', events, xhr);
             }
             if (curr_onreadystatechange) {
@@ -1402,12 +1407,15 @@ var Gmail = function(localJQuery) {
       var x = data[i];
       var temp = {};
 
+      //to make it consistent with content-common.js
+      var sender = $(x[7]).filter(".yP, .zF").last().attr("email"); 
       parsed.push({
         id: x[0],
         title : x[9],
         excerpt : x[10],
         time : x[15],
-        sender : x[28],
+        sender : sender,
+        //sender : x[28],
         attachment : x[13],
         labels: x[5]
       });
@@ -1419,7 +1427,8 @@ var Gmail = function(localJQuery) {
 
   api.helper.get.visible_emails_pre = function() {
     var page = api.get.current_page();
-    var url = window.location.origin + window.location.pathname + '?ui=2&ik=' + api.tracker.ik+'&rid=' + api.tracker.rid + '&view=tl&start=0&num=120&rt=1';
+    var url = window.location.origin + window.location.pathname + '?ui=2&ik=' + api.tracker.ik +
+                '&rid=' + api.tracker.rid + '&view=tl&start=0&num=120&rt=1&at=' + api.tracker.at;
     
     if(page.indexOf('label/') == 0) {
       url += '&cat=' + page.split('/')[1] +'&search=cat';
@@ -1434,8 +1443,8 @@ var Gmail = function(localJQuery) {
         cat_label = 'social';
       }
       url += '&cat=^smartlabel_' + cat_label +'&search=category';
-    } else if(page.indexOf('search/') == 0) {
-      url += '&qs=true&q=' + page.split('/')[1] +'&search=query';
+    } else if(page.indexOf('search/') == 0 || page.indexOf('advanced-search/')==0) {
+      url += '&qs=true&q=' + decodeURIComponent(page.split('/')[1]) +'&search=query';
     } else if(page == 'inbox'){
       url += '&search=' + 'mbox';
     }else {
@@ -1506,7 +1515,7 @@ var Gmail = function(localJQuery) {
   }
 
   api.get.current_page = function() {
-    var hash  = window.location.hash.split('#').pop().split('?').shift().split("/").pop();
+    var hash  = window.location.hash.split('#').pop();
     var pages = ['sent', 'inbox', 'starred', 'drafts', 'imp', 'chats', 'all', 'spam', 'trash', 'settings'];
 
     var page = null;
@@ -1515,7 +1524,8 @@ var Gmail = function(localJQuery) {
       page = hash;
     }
 
-    if(hash.indexOf('label/') == 0 || hash.indexOf('category/') == 0 || hash.indexOf('search/') == 0 || hash.indexOf('settings/') == 0) {
+    if(hash.indexOf('label/') == 0 || hash.indexOf('category/') == 0 || hash.indexOf('search/') == 0 || hash.indexOf('settings/') == 0
+        || hash.indexOf('advanced-search/') == 0) {
       if(hash.split('/').length < 3) {
         page = hash;
       }
@@ -1813,7 +1823,7 @@ var Gmail = function(localJQuery) {
     var flag_name = 'bx_vmb';
     var flag_value = undefined;
 
-    var array_with_flag = api.tracker.globals[17][5][1];
+    var array_with_flag = api.tracker.globals[17][4][1];
 
     for (var i = 0; i < array_with_flag.length; i++) {
       var current = array_with_flag[i];
@@ -2076,12 +2086,18 @@ var Gmail = function(localJQuery) {
     return this;
   }
   $.extend(api.dom.compose.prototype, {
-
     /**
       Retrieve the compose id
      */
     id: function() {
       return this.dom('id').val();
+    },
+
+    /**
+      Retrieve the draft email id
+     */
+    email_id: function() {
+      return this.dom('draft').val();
     },
 
     /**
@@ -2173,6 +2189,7 @@ var Gmail = function(localJQuery) {
         cc:'textarea[name=cc]',
         bcc:'textarea[name=bcc]',
         id: 'input[name=composeid]',
+        draft: 'input[name=draft]',
         subject: 'input[name=subject]',
         subjectbox: 'input[name=subjectbox]',
         all_subjects: 'input[name=subjectbox], input[name=subject]',
