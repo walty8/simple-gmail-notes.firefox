@@ -33,10 +33,6 @@ getIconBaseUrl = function(){
   return gDataURL + "/image";
 }
 
-var openOptionsPage = function(){
-  self.port.emit("SGN_options", {"action": "open_options"});
-}
-
 //callback implementation end
 
 //initialization scripts

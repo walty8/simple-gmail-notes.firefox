@@ -27,6 +27,13 @@ isDebug = function(callback){
   return isDebugCache == true;
 }
 
+openTab = function(page){
+  var tabs = require("sdk/tabs");
+  tabWorker = tabs.open({
+    url: self.data.url(page),
+  });
+}
+
 getRawStorageObject = function(){
   return ss.storage;
 }
@@ -159,13 +166,6 @@ backgroundInit = function(worker) {
           var key = gPreferenceTypes[i];
           rawPreferences[key] = preferences[key];
         }
-        return;
-
-      case "open_options":
-        var tabs = require("sdk/tabs");
-        tabWorker = tabs.open({
-          url: self.data.url("options.html"),
-        });
         return;
 
       default:

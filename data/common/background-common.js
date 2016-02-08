@@ -34,6 +34,10 @@ isDebug = function(callback) {
   return false;
 }
 
+openTab = function(page){
+  throw "openTab not implemented";
+}
+
 getRawPreferences = function(){
   throw "getRawPreferences not implemented";
 }
@@ -81,10 +85,14 @@ debugLog = function() //need some further work
   }
 }
 
-getPreferences = function()
+isEmptyPrefernce = function(preference)
 {
-  var preferences = getRawPreferences();
+  var val = String(preference);
+  return val == "" || val == "null" || val == "undefined";
+}
 
+updateDefaultPreferences = function(preferences)
+{
   var hideListingNotes = (preferences["hideListingNotes"] === "true");
   //for backward compatible
   if(hideListingNotes){
@@ -92,29 +100,37 @@ getPreferences = function()
     delete preferences["hideListingNotes"];
   }
 
-  if(!preferences["abstractStyle"])
+  if(isEmptyPrefernce(preferences["abstractStyle"]))
     preferences["abstractStyle"] = "20";  //default to 20 characters
 
 
-  if(!preferences["noteHeight"])
+  if(isEmptyPrefernce(preferences["noteHeight"]))
     preferences["noteHeight"] = "4";  //default to 4 rows high
 
   
-  if(!preferences["fontColor"])
+  if(isEmptyPrefernce(preferences["fontColor"]))
     preferences["fontColor"] = "#808080";
 
 
-  if(!preferences["backgroundColor"])
+  if(isEmptyPrefernce(preferences["backgroundColor"]))
     preferences["backgroundColor"] = "#FFFFFF";
 
-  if(!preferences["notePosition"])
+  if(isEmptyPrefernce(preferences["notePosition"]))
     preferences["notePosition"] = "top";
 
-  if(!preferences["showConnectionPrompt"])
-    preferences["showConnectionPrompt"] = "false";
+  if(isEmptyPrefernce(preferences["showConnectionPrompt"]))
+    preferences["showConnectionPrompt"] = "true";
 
 
   return preferences;
+
+}
+
+getPreferences = function()
+{
+  var preferences = getRawPreferences();
+
+  return updateDefaultPreferences(preferences);
 }
 
 setStorage = function(sender, key, value) {
@@ -616,6 +632,9 @@ setupListeners = function(sender, request){
       break;
     case "pull_notes":
       pullNotes(sender, request.pendingPullList);
+      break;
+    case "open_options":
+      openTab("options.html");
       break;
     default:
       debugLog("unknown request to background", request);
