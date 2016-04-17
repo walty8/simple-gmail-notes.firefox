@@ -22,6 +22,8 @@
 
 - [gmail.js](https://github.com/KartikTalwar/gmail.js/tree/master)
 
+- [ikooni icons](https://www.iconfinder.com/iconsets/ikooni-outline-free-basic)
+
 - [oauthorizer](https://github.com/mozilla/oauthorizer)
 
 ### Executions

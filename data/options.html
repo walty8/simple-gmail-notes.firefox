@@ -34,6 +34,17 @@
     </tr>
     <tr>
       <td>
+        Note position
+      </td>
+      <td>
+        <select id="note_position">
+          <option>top</option>
+          <option>bottom</option>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <td>
         Note font color
       </td>
       <td>
@@ -48,16 +59,40 @@
         <input type="text" id="background_color">
       </td>
     </tr>
-
     <tr>
       <td>
-        Note position
+        Note font size
       </td>
       <td>
-        <select id="note_position">
-          <option>top</option>
-          <option>bottom</option>
-        </select>
+          <select id="font_size">
+              <option value="default">(Default)</option>
+          </select>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Abstract font color
+      </td>
+      <td>
+        <input type="text" id="abstract_font_color">
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Abstract background color
+      </td>
+      <td>
+        <input type="text" id="abstract_background_color">
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Abstract font size
+      </td>
+      <td>
+          <select id="abstract_font_size">
+              <option value="default">(Default)</option>
+          </select>
       </td>
     </tr>
     <tr>
@@ -76,7 +111,7 @@
 <br/>
 <br/>
 <br/>
-<div> <button id="reset">Reset to Default Values</button> </div>
+<div> <button id="reset">Reset to Default Values</button> &nbsp; <button id="revoke">Manage Access Tokens</button> </div>
       </td>
   </table>
 </body>

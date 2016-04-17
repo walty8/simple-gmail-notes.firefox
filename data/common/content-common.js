@@ -97,6 +97,11 @@ disableEdit = function(retryCount)
     retryCount = settings.MAX_RETRY_COUNT;
 
   $(".sgn_input").prop("disabled", true);
+  $(".sgn_input").val("");
+
+  //clear up the cache
+  gEmailIdKeyDict = {};
+  gEmailKeyNoteDict = {};
 
   //keep trying until it's visible
   if(!$(".sgn_input").is(":disabled") || $(".sgn_padding").is(":visible")){  
@@ -220,6 +225,10 @@ var gCurrentEmailSubject = "";
 var gCurrentEmailDatetime = "";
 var gCurrentEmailSender = "";
 
+var gAbstractBackgroundColor = "";
+var gAbstractFontColor = "";
+var gAbstractFontSize = "";
+
 setupNotes = function(email, messageId){
   debugLog("Start to set up notes");
   debugLog("Email", email);
@@ -230,9 +239,16 @@ setupNotes = function(email, messageId){
 
   var injectionNode = $(".sgn_container");
 
+  var note = "";
+
+  var emailKey = gEmailIdKeyDict[messageId];
+  if(emailKey && gEmailKeyNoteDict[emailKey])
+    note = gEmailKeyNoteDict[emailKey].description;
+    
+
   var textAreaNode = $("<textarea></textarea>", {
     "class": "sgn_input",
-    "text": "",
+    "text": note,
     "disabled":"disabled"
   }).blur(function(){
     var content = $(this).val();
@@ -379,13 +395,23 @@ _updateNotesOnSummary = function(userEmail, pulledNoteList){
     var sgnId = "sgn_" + hashFnv32a(emailKey, true);
 
     if(note && note.description){
-      labelNode = $('<div class="ar as sgn" id="' + sgnId + '">' +
+
+      labelNode = $('<div class="ar as sgn" sgn_id="' + sgnId + '">' +
                             '<div class="at" title="Simple Gmail Notes: ' + htmlEscape(note.description) + '" style="background-color: #ddd; border-color: #ddd;">' + 
                             '<div class="au" style="border-color:#ddd"><div class="av" style="color: #666">' + htmlEscape(note.short_description) + '</div></div>' + 
                        '</div></div>');
+
+      labelNode.find(".at").css("background-color", gAbstractBackgroundColor)
+                           .css("border-color", gAbstractBackgroundColor);
+      labelNode.find(".au").css("border-color", gAbstractBackgroundColor);
+      labelNode.find(".av").css("color", gAbstractFontColor);
+
+      if(gAbstractFontSize != "default")
+          labelNode.find(".av").css("font-size", gAbstractFontSize + "pt");
+                          
     }
     else {
-      labelNode = $('<div style="display:none" class="sgn" id="' + sgnId + '"></div>');
+      labelNode = $('<div style="display:none" class="sgn" sgn_id="' + sgnId + '"></div>');
     }
 
     addLabelToTitle(mailNode, labelNode);
@@ -513,11 +539,12 @@ setupListeners = function(){
         var emailKey = gEmailIdKeyDict[emailId];
         var sgnId = "sgn_" + hashFnv32a(emailKey, true);
 
-        $("#" + sgnId).remove();
+        $(".sgn[sgn_id='" + sgnId + "']").remove();
 
         debugLog("@447", emailKey, emailId);
+
+        //gEmailKeyNoteDict = {};
         delete gEmailKeyNoteDict[emailKey];
-        delete gEmailIdKeyDict[emailId];
 
         debugLog("Requesting force reload");
         sendEventMessage("SGN_force_reload");
@@ -539,13 +566,26 @@ setupListeners = function(){
         if(backgroundColor)
           $(".sgn_input").css("background-color", backgroundColor);
 
+        var fontSize = preferences["fontSize"];
+        if(fontSize != "default"){
+          $(".sgn_input").css("font-size", fontSize + "pt");
+          $(".sgn_current_connection").css("font-size", fontSize + "pt");
+        }
+
+        gAbstractBackgroundColor = preferences["abstractBackgroundColor"];
+        gAbstractFontColor = preferences["abstractFontColor"];
+        gAbstractFontSize = preferences["abstractFontSize"];
+
+        var firstVisible = $(".sgn_container:visible").first();
+        //avoid duplicates
+        $(".sgn_container").hide();
+        firstVisible.show();
+
         var notePosition = preferences["notePosition"];
         if(notePosition == "bottom"){
           debugLog("@485, move to bottom");
-          $(".sgn_container").hide();
-          $(".sgn_container").first().show();
           //$(".nH.aHU").find(".sgn_container").remove();
-          $(".nH.aHU").append($(".sgn_container").first());
+          $(".nH.aHU").append(firstVisible);
         }
 
         var showConnectionPrompt = (preferences["showConnectionPrompt"] !== "false");

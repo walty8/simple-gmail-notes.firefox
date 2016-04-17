@@ -19,7 +19,10 @@ var settings = {
   SCOPE: 'https://www.googleapis.com/auth/drive.file'
 } 
 
-var gPreferenceTypes = ["abstractStyle", "noteHeight", "fontColor", "backgroundColor", "notePosition", "showConnectionPrompt"];
+var gPreferenceTypes = ["abstractStyle", "noteHeight", 
+                        "fontColor", "backgroundColor", "fontSize", 
+                        "abstractFontColor", "abstractBackgroundColor", "abstractFontSize", 
+                        "notePosition", "showConnectionPrompt"];
 
 /*
  * Interface declarations
@@ -111,15 +114,27 @@ updateDefaultPreferences = function(preferences)
   if(isEmptyPrefernce(preferences["fontColor"]))
     preferences["fontColor"] = "#808080";
 
-
   if(isEmptyPrefernce(preferences["backgroundColor"]))
     preferences["backgroundColor"] = "#FFFFFF";
+
+  if(isEmptyPrefernce(preferences["fontSize"]))
+    preferences["fontSize"] = "default";
+
+  if(isEmptyPrefernce(preferences["abstractFontColor"]))
+    preferences["abstractFontColor"] = "#666666";
+
+  if(isEmptyPrefernce(preferences["abstractBackgroundColor"]))
+    preferences["abstractBackgroundColor"] = "#DDDDDD";
+
+  if(isEmptyPrefernce(preferences["abstractFontSize"]))
+    preferences["abstractFontSize"] = "default";
 
   if(isEmptyPrefernce(preferences["notePosition"]))
     preferences["notePosition"] = "top";
 
   if(isEmptyPrefernce(preferences["showConnectionPrompt"]))
     preferences["showConnectionPrompt"] = "true";
+
 
 
   return preferences;
@@ -226,7 +241,7 @@ showRefreshTokenError = function(sender, error){
   errorMessage = "Error connecting to Google Drive. " +
                     "Please try to connect again. \n" +
                     "If error persists, you may manually " +
-                    "<a href='https://accounts.google.com/b/0/IssuedAuthSubTokens'>revoke</a> " +
+                    "<a href='https://accounts.google.com/IssuedAuthSubTokens'>revoke</a> " +
                     "previous tokens.\n"
   sendContentMessage(sender, {action:"show_error", type:"revoke"});
 }
@@ -354,7 +369,7 @@ loginGoogleDrive = function(sender, messageId){
 
 }
 
-logoutGoogleDrive = function(sender){
+revokeToken = function(sender){
   var tokenValue = getStorage(sender, "access_token");
   if(tokenValue){
     debugLog("Revoking access token: ", tokenValue);
@@ -365,16 +380,26 @@ logoutGoogleDrive = function(sender){
         debugLog("Revoke done", data);
         if(data.status == 200 || data.status == 400){
           debugLog("Removing local data");
-          setStorage(sender, "access_token", "");
-          setStorage(sender, "refresh_token", "");
-          setStorage(sender, "gdrive_email", "");
+          //setStorage(sender, "access_token", "");
+          //setStorage(sender, "refresh_token", "");
+          //setStorage(sender, "gdrive_email", "");
+          //sendContentMessage(sender, {action:"show_log_in_prompt"});
+          //sendContentMessage(sender, {action:"disable_edit"});
+          logoutGoogleDrive(sender);
         }
 
-        sendContentMessage(sender, {action:"show_log_in_prompt"});
-        sendContentMessage(sender, {action:"disable_edit"});
       }
     });
   }
+}
+
+logoutGoogleDrive = function(sender){
+  setStorage(sender, "code", "");
+  setStorage(sender, "access_token", "");
+  setStorage(sender, "refresh_token", "");
+  setStorage(sender, "gdrive_email", "");
+  sendContentMessage(sender, {action:"show_log_in_prompt"});
+  sendContentMessage(sender, {action:"disable_edit"});
 }
 
 loadMessage = function(sender, gdriveNoteId){
@@ -442,7 +467,19 @@ gdriveQuery = function(sender, query, success_cb, error_cb){
           "Authorization": "Bearer " + getStorage(sender, "access_token")
       },
       url: "https://www.googleapis.com/drive/v2/files?q=" + query,
-      success:function(data){success_cb(data)},
+      success:function(data){
+        //remove the items in the trash
+        if(data.items && data.items.length){
+          for(var i = data.items.length - 1; i >= 0; i--) {
+            var item = data.items[i];
+            if(item.labels && item.labels.trashed) { // a trashed item
+               data.items.splice(i, 1);
+            }
+          }
+        }
+
+        success_cb(data)
+      },
       error:function(data){error_cb(data)}
     });
   })
@@ -582,12 +619,14 @@ sendSummaryNotes = function(sender, pullList, resultList){
 pullNotes = function(sender, pendingPullList){
   var abstractStyle = getPreferenceAbstractStyle();
 
-  if(abstractStyle == "none"){
-    debugLog("@482, skipped pulling because settings -> hide listing notes");
+  if(abstractStyle == "none" || !getStorage(sender, "access_token")){
+    debugLog("@482, skipped pulling because settings -> hide listing notes or no access token");
     sendSummaryNotes(sender, pendingPullList, []);  //send an empty result
     return;
   }
 
+  var preferences = getPreferences();
+  sendContentMessage(sender, {action:"update_preferences", preferences:preferences});
 
   debugLog("@414", pendingPullList);
   var query = "1=1";
