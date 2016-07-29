@@ -652,6 +652,10 @@ var Gmail = function(localJQuery) {
       api.tracker.at = params.url.at;
     }
 
+    if(typeof params.url.search == 'string') {
+      api.tracker.search = params.url.search;
+    }
+
     var action      = decodeURIComponent(params.url.act);
     var sent_params = params.body_params;
     var email_ids   = (typeof sent_params.t == 'string') ? [sent_params.t] : sent_params.t;
@@ -1448,6 +1452,8 @@ var Gmail = function(localJQuery) {
       url += '&qs=true&q=' + decodeURIComponent(page.split('/')[1]) +'&search=query';
     } else if(page == 'inbox'){
       url += '&search=' + 'mbox';
+      //url += '&search=' + 'inbox';
+      //url += '&search=' + api.tracker.search;
     }else {
       url += '&search=' + page;
     }

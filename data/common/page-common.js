@@ -56,6 +56,63 @@ SimpleGmailNotes.start = function(){
     ));
   }
 
+  var lastPullTimeStamp = null;
+  var nextPullTimeStamp = null;
+  var consecutiveRequests = 0;
+  var consecutiveStartTime = 0;
+  var g_oec = 0;
+  var g_lc = 0;
+  var g_pnc = 0;
+
+  var acquireNetworkLock = function() {
+     var timestamp = Date.now() / 1000;
+     var resetCounter = false;
+
+    if(nextPullTimeStamp){//if nextPullTimeStamp is set
+        if(nextPullTimeStamp > timestamp) //skip the request
+            return false;
+        else {
+            nextPullTimeStamp = null;
+            return true;
+        }
+    }
+
+
+    //avoid crazy pulling in case of multiple network requests
+    if(timestamp - lastPullTimeStamp < 3)  //pull again in 3 seconds, for whatever reasons
+      consecutiveRequests += 1;
+    else{
+      resetCounter = true;
+    }
+
+
+    if(consecutiveRequests >= 20){
+        nextPullTimeStamp = timestamp + 60; //penalty timeout for 60 seconds
+
+        var message = "20 consecutive network requests detected from Simple Gmail Notes, the extension would be self-disabled for 60 seconds. Please consider to disable/uninstall this extension to avoid locking of your Gmail account. Currently the developer (me) cannot reproduce this problem and therefore has no idea how to fix it, sorry.\n\nHowever, if possible, please kindly send the following information to the extension bug report page, it would be helpful for the developer to diagnose the problem. Thank you!\n\n";
+        message += "oec:" + g_oec;
+        message += "; lc:" + g_lc; 
+        message += "; pnc:" + g_pnc;
+        message += "; tt:" + Math.round(timestamp - consecutiveStartTime);
+
+        alert(message); //very intrusive, but it's a very serious problem
+
+        resetCounter = true;
+    }
+
+    if(resetCounter){
+        consecutiveRequests = 0;
+        consecutiveStartTime = timestamp;
+        g_oec = 0;
+        g_lc = 0;
+        g_pnc = 0;
+    }
+
+    lastPullTimeStamp = timestamp;
+
+    return true;
+  }
+
   var setupNotes = function(){
     setTimeout(function(){
       var currentPageMessageId = "";
@@ -72,6 +129,11 @@ SimpleGmailNotes.start = function(){
       if(!currentPageMessageId)  //do nothing
           return;
      
+      if(!acquireNetworkLock()){
+          debugLog("sestupNotes failed to get network lock");
+          return;
+      }
+        
       sendEventMessage('SGN_setup_notes', {messageId:currentPageMessageId});
 
       
@@ -90,7 +152,7 @@ SimpleGmailNotes.start = function(){
                           sender:sender});
       });
 
-    }, 0);
+    }, 0);  //setTimeout
   }
 
   var getDOMSignature = function(){
@@ -102,33 +164,35 @@ SimpleGmailNotes.start = function(){
   }
 
 
-  var isPulling = false;
+  var lastPullDiff = 0;
   var pullNotes = function(){
-    //avoid crazy pulling in case of multiple network requests
-    if(isPulling)
-      return;
-    isPulling = true;
-
-
     debugLog("@104", $("tr.zA:visible").find(".sgn").length, $("tr.zA[id]:visible").length);
+
+    var thisPullDiff = $("tr.zA:visible").find(".sgn").length - $("tr.zA[id]:visible").length;
     if(!$("tr.zA").length || 
        (gmail.check.is_inside_email() && !gmail.check.is_preview_pane()) ||
-       $("tr.zA:visible").find(".sgn").length >= $("tr.zA[id]:visible").length){
+       (thisPullDiff == lastPullDiff)){
       debugLog("Skipped pulling");
-      isPulling = false;
+      return;   
+    }
+
+
+    g_pnc += 1;
+    if(!acquireNetworkLock()){
+      debugLog("pullNotes failed to get network lock");
       return;
     }
 
-    debugLog("Simple-gmail-notes: pulling notes");
+    lastPullDiff = thisPullDiff;
 
+    debugLog("Simple-gmail-notes: pulling notes");
     //skip the update if windows location (esp. hash part) is not changed
     gmail.get.visible_emails_async(function(emailList){
-      debugLog("[page.js]sending email for puall request, total count:", 
+      debugLog("[page.js]sending email for pull request, total count:", 
                   emailList.length);
       sendEventMessage("SGN_pull_notes", 
                        {email: gmail.get.user_email(), emailList:emailList});
 
-      isPulling = false;
     });
   }
 
@@ -137,11 +201,13 @@ SimpleGmailNotes.start = function(){
 
     gmail.observe.on('open_email', function(obj){
       debugLog("simple-gmail-notes: open email event", obj);
+      g_oec += 1;
       setupNotes();
     });
 
     gmail.observe.on('load', function(obj){
       debugLog("simple-gmail-notes: load event");
+      g_lc += 1;
       setupNotes();
     });
 
@@ -150,10 +216,6 @@ SimpleGmailNotes.start = function(){
 
     //mainly for debug purpose
     SimpleGmailNotes.gmail = gmail;
-
-  //  gmail.observe.after('http_event', function(obj){
-   //   pullNotes();
-   // }); 
   }
 
   main();
