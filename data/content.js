@@ -40,7 +40,7 @@ setupPageScripts = function(dataurl){
   // Handle the message
   if(top.document == document) {
      var j = document.createElement('script');
-     j.src = dataurl+'/lib/jquery-1.11.3.min.js';
+     j.src = dataurl+'/lib/jquery-3.1.0.min.js';
      (document.head || document.documentElement).appendChild(j);
 
      var g = document.createElement('script');

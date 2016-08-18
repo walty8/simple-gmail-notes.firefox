@@ -102,6 +102,17 @@ var Gmail = function(localJQuery) {
     return $('div[role=main]:first');
   }
 
+  api.check.is_query_page = function() {
+    var page_info = api.get.current_page_info();
+    var hash = page_info.hash;
+
+    return hash.indexOf('label') == 0 
+            || hash.indexOf('category') == 0 
+            || hash.indexOf('search') == 0 
+            || hash.indexOf('settings') == 0 
+            || hash.indexOf('section_query') == 0 
+            || hash.indexOf('advanced-search') == 0;
+  }
 
   api.check.is_preview_pane = function() {
     var dom = api.dom.inbox_content();
@@ -1374,19 +1385,19 @@ var Gmail = function(localJQuery) {
 
 
   api.tools.make_request = function (link, method) {
-    link = decodeURIComponent(link);
+    //link = decodeURIComponent(link);
     var method  = (typeof method == undefined || typeof method == null) ? 'GET' : method;
-    var request = $.ajax({ type: method, url: encodeURI(link), async:false });
+    var request = $.ajax({ type: method, url: link, async:false });
 
     return request.responseText;
   }
 
 
   api.tools.make_request_async = function (link, method, callback) {
-    link = decodeURIComponent(link);
+    //link = decodeURIComponent(link);
     var method  = (typeof method == undefined || typeof method == null) ? 'GET' : method;
 
-    $.ajax({ type: method, url: encodeURI(link), async:true, dataType: 'text' })
+    $.ajax({ type: method, url: link, async:true, dataType: 'text' })
       .done(function(data, textStatus, jqxhr) {
         callback(jqxhr.responseText);
       })
@@ -1432,8 +1443,24 @@ var Gmail = function(localJQuery) {
 
   api.helper.get.visible_emails_pre = function() {
     var page = api.get.current_page();
+    var pageNumber = api.get.current_page_number();
+    var start = 0;
+    var sstart = '0,0,0';
+
+    if(pageNumber)
+        start = (pageNumber - 1) * 100;
+    else{
+        var itemRange = $(".Di .Dj:visible").text();
+
+        if(itemRange){
+            start = parseInt(itemRange.split("-")[0])-1;
+            sstart = encodeURIComponent(start + "," + start + "," + start)
+        }
+    }
+
+
     var url = window.location.origin + window.location.pathname + '?ui=2&ik=' + api.tracker.ik +
-                '&rid=' + api.tracker.rid + '&view=tl&start=0&num=120&rt=1&at=' + api.tracker.at;
+                '&rid=' + api.tracker.rid + '&view=tl&num=120&rt=1&at=' + api.tracker.at + '&start=' + start + '&sstart=' + sstart;
     
     if(page.indexOf('label/') == 0) {
       url += '&cat=' + page.split('/')[1] +'&search=cat';
@@ -1448,12 +1475,10 @@ var Gmail = function(localJQuery) {
         cat_label = 'social';
       }
       url += '&cat=^smartlabel_' + cat_label +'&search=category';
-    } else if(page.indexOf('search/') == 0 || page.indexOf('advanced-search/')==0) {
-      url += '&qs=true&q=' + decodeURIComponent(page.split('/')[1]) +'&search=query';
+    } else if(page.indexOf('search/') == 0 || page.indexOf('advanced-search/')==0 || page.indexOf('section_query/')==0) {
+      url += '&qs=true&q=' + page.split('/')[1] +'&search=query';
     } else if(page == 'inbox'){
       url += '&search=' + 'mbox';
-      //url += '&search=' + 'inbox';
-      //url += '&search=' + api.tracker.search;
     }else {
       url += '&search=' + page;
     }
@@ -1521,23 +1546,44 @@ var Gmail = function(localJQuery) {
     return selected_emails;
   }
 
-  api.get.current_page = function() {
+  api.get.current_page_info = function(){
     var hash  = window.location.hash.split('#').pop();
-    var pages = ['sent', 'inbox', 'starred', 'drafts', 'imp', 'chats', 'all', 'spam', 'trash', 'settings'];
-
-    var page = null;
+    var parts = hash.split("/");
+    var lastPart = parts[parts.length-1];
+    var firstPart = parts[0]
 
     hash = hash.split("?")[0]; //when compose window keep opening problem, there would be query string
 
-    if($.inArray(hash, pages) > -1) {
-      page = hash;
+    return {"hash": hash, "firstPart": firstPart, "lastPart": lastPart};
+  }
+
+  //for multiple pages
+  api.get.current_page_number = function() {
+    var info = api.get.current_page_info();
+    var pageNumber = null;
+
+    if(info.lastPart.match(/p[0-9]+/)){
+        pageNumber = parseInt(info.lastPart.substring(1))
     }
 
-    if(hash.indexOf('label/') == 0 || hash.indexOf('category/') == 0 || hash.indexOf('search/') == 0 || hash.indexOf('settings/') == 0
-        || hash.indexOf('advanced-search/') == 0) {
-      if(hash.split('/').length < 3) {
-        page = hash;
-      }
+    return pageNumber;
+  }
+
+  api.get.current_page = function() {
+    var pages = ['sent', 'inbox', 'starred', 'drafts', 'imp', 'chats', 'all', 'spam', 'trash', 'settings'];
+    var page = null;    //return null if it's detail page
+    var info = api.get.current_page_info();
+    var hash = info.hash;
+
+
+    if(info.lastPart.match(/[0-9A-Fa-f]{16}/))   //detail page
+        return null;
+
+    if(api.check.is_query_page()){
+        page = hash;    //include the query part
+    }
+    else {
+        page = info.firstPart;
     }
 
     return page;

@@ -138,6 +138,11 @@ checkLogger = function(sender){
   });
 }
 
+getCurrentVersion = function(){
+    var version = require("sdk/self").version;
+    return version;
+}
+
 //background script initialzation   //we only care the folder
 backgroundInit = function(worker) {
   var dataurl = self.data.url("dummy.html");  //we only care the folder
@@ -182,7 +187,7 @@ optionInit = function(){
 //trigger the background init script, and set up the content script
 pageMod.PageMod({
   include: ["https://mail.google.com/*", "http://mail.google.com/*"],
-  contentScriptFile: [self.data.url('lib/jquery-1.11.3.min.js'), 
+  contentScriptFile: [self.data.url('lib/jquery-3.1.0.min.js'), 
                       self.data.url('common/content-common.js'),
                       self.data.url('content.js')],
   contentStyleFile: [self.data.url('css/style.css')],
@@ -192,7 +197,7 @@ pageMod.PageMod({
 
 pageMod.PageMod({
   include: self.data.url('options.html'),
-  contentScriptFile: [ self.data.url("lib/jquery-1.11.3.min.js"),
+  contentScriptFile: [ self.data.url("lib/jquery-3.1.0.min.js"),
                         self.data.url("lib/jquery.simple-color.js"),
                         self.data.url("common/options.js")],
   contentScriptWhen: 'end',  

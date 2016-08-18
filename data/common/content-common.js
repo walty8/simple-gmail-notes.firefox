@@ -157,6 +157,8 @@ showLogoutPrompt = function(email, retryCount){
 
   $(".sgn_search").attr("href", getSearchNoteURL());
 
+  $(".sgn_add_calendar").attr("href", getAddCalendarURL());
+
   if(!$(".sgn_prompt_logout").is(":visible")){  //keep trying until it's visible
     debugLog("Retry to show prompt");
     retryCount = retryCount - 1;
@@ -217,6 +219,22 @@ getSearchNoteURL = function(){
   return searchUrl;
 }
 
+getAddCalendarURL = function(){
+  var userId = getGoogleAccountId();
+  var details = window.location.href + "\n-----\n" + $(".sgn_input").val();
+  var title = gCurrentEmailSubject;
+
+  if(title.indexOf("Re:") < 0)
+      title = "Re: " + title;
+
+  var addCalendarURL = "https://calendar.google.com/calendar/b/" + userId + 
+                            "/render?action=TEMPLATE" +
+                            "&text=" + encodeURIComponent(title) + 
+                            "&details=" + encodeURIComponent(details);
+
+  return addCalendarURL;
+}
+
 //global variables to mark the status of current tab
 var gCurrentGDriveNoteId = "";
 var gCurrentGDriveFolderId = "";
@@ -253,7 +271,7 @@ setupNotes = function(email, messageId){
     "class": "sgn_input",
     "text": note,
     "disabled":"disabled"
-  }).blur(function(){
+  }).on("blur", function(){
     var content = $(this).val();
     if(gPreviousContent != content){
       sendBackgroundMessage({action:"post_note", email:email, messageId:messageId, 
@@ -262,7 +280,7 @@ setupNotes = function(email, messageId){
                    gdriveFolderId:gCurrentGDriveFolderId, content:content});
     }
 	  return true;
-	});
+  });
 
 
   var searchLogoutPrompt = $("<div class='sgn_prompt_logout'/></div>" )
@@ -272,6 +290,8 @@ setupNotes = function(email, messageId){
               "<img title='Log Out' src='" + getIconBaseUrl() + "/logout.24.png'></a>" + 
               "<a class='sgn_open_options sgn_action'>" +
               "<img title='Preferences' src='" + getIconBaseUrl() + "/preferences.24.png'></a>" +
+              "<a class='sgn_action sgn_add_calendar' target='_blank'>" +
+              "<img title='Add to Google Calendar' src='" + getIconBaseUrl() + "/calendar.24.png'/></a> " +
               "<a class='sgn_action sgn_search' target='_blank'>" +
               "<img title='Search' src='" + getIconBaseUrl() + "/search.24.png'/></a> " +
               "")
@@ -331,19 +351,23 @@ setupNotes = function(email, messageId){
           //there is something wrong with the extension
           //alert("extension problem");
           $(".sgn_input").text("WARNING! Simple Gmail Notes is not available.\n\n" +
-                               "It's probably because the extension was disabled or (automatically) updated, " +
-                               "in either case please refresh this page to remove the warning."
+                               "It's probably because the extension was disabled or updated, " +
+                               "in either case please refresh this page to remove the warning. " +
+                               "(Left click the address bar and press the 'Enter' key.)"
                                )
                            .css("color", "red")
-                           .css("font-weight", "bold")
+                           .css("font-weight", "bold");
       }
 
   }, 2000);
   sendBackgroundMessage({action:"validate_background_alive", email: email});    //if background script died, exception raise from here
 
+  var debugInfo = "";
+  sendBackgroundMessage({action:"update_debug_content_info", debugInfo: debugInfo});
+
   //load initial message
   debugLog("Start to initailize");
-  sendBackgroundMessage({action:"initialize", email: email, messageId:messageId});
+  sendBackgroundMessage({action:"initialize", email: email, messageId: messageId});
 }
 
 
@@ -463,9 +487,15 @@ _updateNotesOnSummary = function(userEmail, pulledNoteList){
   //loop for each email tr
   $("tr.zA[id]").each(function(){
     var emailKey = getEmailKey($(this));
+    var emailNote = gEmailKeyNoteDict[emailKey];
+
+    if(emailNote && emailNote.description && $(this).find(".sgn").css("display") == "none"){
+        $(this).find(".sgn").remove();  //remove the element, so it would be filled later
+    }
+
     //debugLog("Working on email:", emailKey);
     if(!hasMarkedNote($(this))){
-      var emailNote = gEmailKeyNoteDict[emailKey];
+    //  var emailNote = gEmailKeyNoteDict[emailKey];
       markNote($(this), emailNote, emailKey);
     }
   });
@@ -628,7 +658,10 @@ setupListeners = function(){
           $(".sgn_current_connection").hide();
         }
 
-
+        var showAddCalendar = (preferences["showAddCalendar"] !== "false");
+        if(!showAddCalendar){
+          $(".sgn_add_calendar").hide();
+        }
 
         debugLog("@470", preferences);
         break;
@@ -676,9 +709,8 @@ setupListeners = function(){
     gCurrentEmailSubject = e.detail.subject;
     gCurrentEmailDatetime = e.detail.datetime;
     gCurrentEmailSender = e.detail.sender;
-
-
   });
+
 
   document.addEventListener('SGN_pull_notes', function(e) {
     debugLog("Requested to pull notes");
@@ -699,6 +731,12 @@ setupListeners = function(){
 
     pullNotes(email, emailList);
 
+  });
+
+  document.addEventListener('SGN_update_debug_page_info', function(e) {
+      debugLog("Got page debug info");
+      var debugInfo = e.detail.debugInfo;
+      sendBackgroundMessage({action: "update_debug_page_info", debugInfo: debugInfo});
   });
 }
 

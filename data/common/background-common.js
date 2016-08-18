@@ -19,10 +19,14 @@ var settings = {
   SCOPE: 'https://www.googleapis.com/auth/drive.file'
 } 
 
-var gPreferenceTypes = ["abstractStyle", "noteHeight", 
-                        "fontColor", "backgroundColor", "fontSize", 
-                        "abstractFontColor", "abstractBackgroundColor", "abstractFontSize", 
-                        "notePosition", "showConnectionPrompt"];
+var gPreferenceTypes = ["abstractStyle", "noteHeight", "fontColor", 
+                        "backgroundColor", "fontSize", "abstractFontColor", 
+                        "abstractBackgroundColor", "abstractFontSize", 
+                        "notePosition", "showConnectionPrompt", 
+                        "showAddCalendar", "debugPageInfo",
+                        "debugContentInfo", "debugBackgroundInfo"];
+
+var gSgnEmtpy = "<SGN_EMPTY>";
 
 /*
  * Interface declarations
@@ -77,6 +81,10 @@ checkLogger = function(sender){
   throw "checkLogger not implemented";
 }
 
+getCurrentVersion = function(){
+  throw "getCurrentVersion not implemented";
+}
+
 /*
  * Shared Utility Functions
  */
@@ -115,7 +123,7 @@ updateDefaultPreferences = function(preferences)
     preferences["fontColor"] = "#808080";
 
   if(isEmptyPrefernce(preferences["backgroundColor"]))
-    preferences["backgroundColor"] = "#FFFFFF";
+    preferences["backgroundColor"] = "#FFFF99";
 
   if(isEmptyPrefernce(preferences["fontSize"]))
     preferences["fontSize"] = "default";
@@ -124,7 +132,7 @@ updateDefaultPreferences = function(preferences)
     preferences["abstractFontColor"] = "#666666";
 
   if(isEmptyPrefernce(preferences["abstractBackgroundColor"]))
-    preferences["abstractBackgroundColor"] = "#DDDDDD";
+    preferences["abstractBackgroundColor"] = "#FFFF99";
 
   if(isEmptyPrefernce(preferences["abstractFontSize"]))
     preferences["abstractFontSize"] = "default";
@@ -133,8 +141,10 @@ updateDefaultPreferences = function(preferences)
     preferences["notePosition"] = "top";
 
   if(isEmptyPrefernce(preferences["showConnectionPrompt"]))
-    preferences["showConnectionPrompt"] = "true";
+    preferences["showConnectionPrompt"] = "false";
 
+  if(isEmptyPrefernce(preferences["showAddCalendar"]))
+    preferences["showAddCalendar"] = "true";
 
 
   return preferences;
@@ -412,6 +422,8 @@ loadMessage = function(sender, gdriveNoteId){
           gdriveNoteId + "?alt=media",
     success: function(data) {
       debugLog("Loaded message", data);
+      if(data == gSgnEmtpy)
+        data = "";
       sendContentMessage(sender, {action:"update_content", content:data});
       sendContentMessage(sender, {action:"enable_edit", 
                            gdriveEmail:getStorage(sender, "gdrive_email")});  
@@ -552,6 +564,8 @@ searchNote = function(sender, messageId){
 initialize = function(sender, messageId){
   var preferences = getPreferences();
 
+  preferences['debugBackgroundInfo'] = "Extension Version: " + getCurrentVersion();
+
   sendContentMessage(sender, {action:"update_preferences", preferences:preferences});
 
   debugLog("@476", preferences);
@@ -594,7 +608,7 @@ sendSummaryNotes = function(sender, pullList, resultList){
     var description = ""; //empty string for not found
     var shortDescription = "";
 
-    if(itemDict[title]){
+    if(itemDict[title] && itemDict[title] != gSgnEmtpy){
       description = itemDict[title];
 
       if(abstractStyle == "fixed_SGN")
@@ -625,28 +639,51 @@ pullNotes = function(sender, pendingPullList){
     return;
   }
 
+  if(pendingPullList.length == 0){
+    debugLog("Empty pending list, no need to pull");
+    return;
+  }
+
   var preferences = getPreferences();
   sendContentMessage(sender, {action:"update_preferences", preferences:preferences});
-
   debugLog("@414", pendingPullList);
-  var query = "1=1";
-  iterateArray(pendingPullList, function(index, messageId){
-    query += " or title contains '" + messageId + "'"
-  });
 
-  query = query.replace("1=1 or", "");  //remove the heading string
+  var totalRequests = Math.floor((pendingPullList.length-1) / 120) + 1;
 
-  debugLog("@431, query", query);
+  for(var i=0; i<totalRequests; i++){
+      var query = "1=1";
+      var startIndex = i*120;
+      var endIndex = (i+1)*120;
 
-  gdriveQuery(sender, query,
-    function(data){ //success callback
-      debugLog("@433, query succeed", data);
-      sendSummaryNotes(sender, pendingPullList, data.items);
-    },
-    function(data){ //error callback
-      debugLog("@439, query failed", data);
-    }
-  );
+      if(endIndex > pendingPullList.length)
+          endIndex = pendingPullList.length;
+
+
+      var partialPullList = pendingPullList.slice(startIndex, endIndex)
+
+      iterateArray(partialPullList, function(index, messageId){
+        query += " or title contains '" + messageId + "'";
+      });
+
+
+      query = query.replace("1=1 or", "");  //remove the heading string
+      debugLog("@431, query", query);
+      
+      (function(pullList){gdriveQuery(sender, query, 
+        function(data){ //success callback
+          debugLog("@433, query succeed", data);
+          sendSummaryNotes(sender, pullList, data.items);
+        },
+        function(data){ //error callback
+          debugLog("@439, query failed", data);
+        }
+      );
+      })(partialPullList);
+  }
+
+
+
+
 }
 
 //For messaging between background and content script
@@ -661,9 +698,11 @@ setupListeners = function(sender, request){
       loginGoogleDrive(sender, request.messageId);
       break;
     case "post_note":
+      content = request.content;
+      if(content == "")
+          content = gSgnEmtpy;
       postNote(sender, request.messageId, request.emailTitleSuffix,
-                 request.gdriveFolderId, request.gdriveNoteId, 
-                 request.content);
+                 request.gdriveFolderId, request.gdriveNoteId, content);
       break;
     case "initialize":
       initialize(sender, request.messageId);
@@ -678,6 +717,14 @@ setupListeners = function(sender, request){
     case "validate_background_alive":
       //do nothing except echo back, to show it's alive
       sendContentMessage(sender, {action: "update_validation_timestamp"});
+      break;
+    case "update_debug_page_info":
+      var preferences = getPreferences();
+      preferences["debugPageInfo"] = request.debugInfo;
+      break;
+    case "update_debug_content_info":
+      var preferences = getPreferences();
+      preferences["debugContentInfo"] = request.debugInfo;
       break;
     default:
       debugLog("unknown request to background", request);
