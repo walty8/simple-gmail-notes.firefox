@@ -24,10 +24,15 @@ var getIconBaseUrl = function(){
   throw "getIconBaseUrl not implemented";
 }
 
+var addScript = function(scriptPath){
+  throw "addScript is not implemented";
+}
+
 var isDebug = function(callback) {
   //return true;  //turn on this only if u want to check initilization part
   return false;
 }
+
 /* -- end -- */
 
 /* global variables to mark the status of current tab */
@@ -603,5 +608,33 @@ var appendDebugInfo = function(message){
   sendBackgroundMessage({action:"update_debug_content_info", debugInfo: gDebugInfo});
 }
 
+
+//use for page script set up
+var contentLoadStarted = false;
+var contentLoadDone = false;
+
+function setupPage(){
+    addScript('lib/jquery-3.1.0.min.js');
+    addScript('lib/gmail.js');
+    addScript('common/page-common.js');
+    addScript('page.js');
+}
+
+
+function fireContentLoadedEvent() {
+    if(contentLoadStarted){
+        appendDebugInfo("skipLoading");
+        return;
+    }
+
+    contentLoadStarted = true;
+    appendDebugInfo("contentLoadStarted");
+
+    setupListeners();
+    setupPage();
+
+    contentLoadDone = true;
+    appendDebugInfo("contentLoadDone");
+}
 
 debugLog("Finished content script (common)");

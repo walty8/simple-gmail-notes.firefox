@@ -33,36 +33,25 @@ getIconBaseUrl = function(){
   return gDataURL + "/image";
 }
 
-//callback implementation end
-
-//initialization scripts
-setupPageScripts = function(dataurl){
-  // Handle the message
+function addScript(scriptPath){
   if(top.document == document) {
-     var j = document.createElement('script');
-     j.src = dataurl+'/lib/jquery-3.1.0.min.js';
-     (document.head || document.documentElement).appendChild(j);
-
-     var g = document.createElement('script');
-     g.src = dataurl+'/lib/gmail.js';
-     (document.head || document.documentElement).appendChild(g);
-
-     var c = document.createElement('script');
-     c.src = dataurl+'/common/page-common.js';
-     (document.head || document.documentElement).appendChild(c);
-
-     var p = document.createElement('script');
-     p.src = dataurl+'/page.js';
-     (document.head || document.documentElement).appendChild(p);
+    var j = document.createElement('script');
+    j.src = gDataURL + '/' + scriptPath;
+    j.async = false;
+    j.defer = false;
+    (document.head || document.documentElement).appendChild(j);
   }
 }
 
+//callback implementation end
+
+
+
+//initalization
 
 self.port.on("initContent", function handleMyMessage(dataurl) {
-  setupListeners();
-  setupPageScripts(dataurl);
-  gDataURL = dataurl
+  gDataURL = dataurl;
+  appendDebugInfo("documentReady");
+  fireContentLoadedEvent();
 });
-
-
 
