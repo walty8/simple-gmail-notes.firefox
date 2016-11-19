@@ -586,7 +586,7 @@ var setupListeners = function(){
         break;
       case "heart_beat_response":
         gLastHeartBeat = Date.now();
-        sendEventMessage('SGN_PAGE_heart_beat_response', {gdriveEmail:request.gdriveEmail});  
+        sendEventMessage('SGN_PAGE_heart_beat_response', request.gdriveEmail);  
         break;
       default:
         debugLog("unknown background request", request);

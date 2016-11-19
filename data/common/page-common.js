@@ -620,7 +620,7 @@ SimpleGmailNotes.start = function(){
 
     document.addEventListener('SGN_PAGE_heart_beat_response', function(e) {
       SimpleGmailNotes.lastHeartBeat = Date.now();
-      SimpleGmailNotes.gdriveEmail = e.gdriveEmail;
+      SimpleGmailNotes.gdriveEmail = e.detail;
     });
 
     //use current DOM to update email ID of first page
