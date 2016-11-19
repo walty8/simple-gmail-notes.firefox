@@ -601,11 +601,13 @@ var setupListeners = function(){
 
 var gDebugInfo = "";
 var appendDebugInfo = function(message){
-  if(gDebugInfo)
-    gDebugInfo += ", "
+  if(gDebugInfo.indexOf(message) < 0){
+    if(gDebugInfo)
+      gDebugInfo += ", "
 
-  gDebugInfo += message ;
-  sendBackgroundMessage({action:"update_debug_content_info", debugInfo: gDebugInfo});
+    gDebugInfo += message ;
+    sendBackgroundMessage({action:"update_debug_content_info", debugInfo: gDebugInfo});
+  }
 }
 
 
