@@ -11,8 +11,5 @@ Session.vim
 *ignore
 *.patch
 *.diff
-tester*
-tester*
 test
 *.2016*
-Makefile
