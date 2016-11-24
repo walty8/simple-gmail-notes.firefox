@@ -13,3 +13,4 @@ Session.vim
 *.diff
 test
 *.2016*
+tester*
