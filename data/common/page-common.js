@@ -314,11 +314,11 @@ SimpleGmailNotes.start = function(){
         }
 
         if(strippedString.indexOf('["tb"') > 0){ //new email arrived for priority inbox view
-          var emailData = eval(strippedString);
+          var emailData = $.parseJSON(strippedString);
           email_list = gmail.tools.parse_view_data(emailData[0]);
         }
         else if(strippedString.indexOf('["stu"') > 0){
-          var emailData = eval(strippedString);
+          var emailData = $.parseJSON(strippedString);
           var newData = [];
 
           emailData = emailData[0];
@@ -364,7 +364,7 @@ SimpleGmailNotes.start = function(){
           continue;
         }
 
-        var tempList = eval(line);
+        var tempList = $.parseJSON(line);
 
         for(var j=0; j<tempList.length; j++){
           if(tempList[j][0] == 'tb'){
@@ -404,7 +404,7 @@ SimpleGmailNotes.start = function(){
 
     var strippedString = dataString.substring(startString.length, totalLength-endString.length);
 
-    var viewData = eval(strippedString);
+    var viewData = $.parseJSON(strippedString);
 
     var email_list = gmail.tools.parse_view_data(viewData);
 
