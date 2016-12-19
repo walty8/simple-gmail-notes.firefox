@@ -11,6 +11,7 @@ Session.vim
 *ignore
 *.patch
 *.diff
+.*
 test
 *.2016*
 tester*
