@@ -1,3 +1,9 @@
+# WARNING - THIS ADDON WILL NOT WORK IN FIREFOX 51 AND AFTERWARDS #
+
+- Please see https://github.com/walty8/simple-gmail-notes.firefox/issues/1 for the details.
+
+----
+
 ### This is a _Firefox Addon_ that adds notes to Gmail conversations. 
 
 - 100% free and open source! 
