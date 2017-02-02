@@ -14,12 +14,7 @@
 
 
 /* global variables */
-var settings = {
-  CLIENT_ID: "38131814991-p4u809qrr5ee1bsehregd4os69jf2n7i.apps.googleusercontent.com",
-  CLIENT_SECRET: "mdA0U_jSkAjI_1x8pdgtrx02",
-  NOTE_FOLDER_NAME: "_SIMPLE_GMAIL_NOTES_",
-  SCOPE: 'https://www.googleapis.com/auth/drive.file'
-} 
+var settings = {};  //to be overriden
 
 var gPreferenceTypes = ["abstractStyle", "noteHeight", "fontColor", 
                         "backgroundColor", "notePosition", 

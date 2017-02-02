@@ -20,6 +20,13 @@ loader.loadSubScript(self.data.url("common/background-common.js"));
 debugLog("Common script loaded, current settings", settings);
 
 //Callback implementation for common script
+var settings = {
+  CLIENT_ID: "38131814991-fm1nvhntut33me43op74bl9636dek9f3.apps.googleusercontent.com",
+  CLIENT_SECRET: "znoCKq41I-VufKSIJw0rmQ8O",
+  NOTE_FOLDER_NAME: "_SIMPLE_GMAIL_NOTES_",
+  SCOPE: 'https://www.googleapis.com/auth/drive.file'
+} 
+
 var isDebugCache = null;
 isDebug = function(callback){
   //return false;
