@@ -43,6 +43,7 @@ var gCurrentGDriveFolderId = "";
 var gPreviousContent = "";
 
 var gCurrentEmailSubject = "";
+var gCurrentMessageId = "";
 
 var gAbstractBackgroundColor = "";
 var gAbstractFontColor = "";
@@ -216,23 +217,32 @@ var setupNoteEditor = function(email, messageId){
 
   var note = ""
   if(message && message.description)
-      note = message.description;
+    note = message.description;
+
 
   var textAreaNode = $("<textarea></textarea>", {
     "class": "sgn_input",
     "text": note,
     "disabled":"disabled"
   }).on("blur", function(){
-    var isDisabled = $('textbox').prop('disabled');
-    var content = $(this).val();
-    if(!isDisabled && gPreviousContent != content){
-      delete gEmailIdNoteDict[messageId];//delete the prevoius note
-      sendBackgroundMessage({action:"post_note", email:email, messageId:messageId, 
-                   emailTitleSuffix: gCurrentEmailSubject,
-                   gdriveNoteId:gCurrentGDriveNoteId, 
-                   gdriveFolderId:gCurrentGDriveFolderId, content:content});
-    }
-	  return true;
+    var currentInput = $(".sgn_input:visible");
+    var emailSubject = gCurrentEmailSubject;
+    var noteId = gCurrentGDriveNoteId;
+    var folderId = gCurrentGDriveFolderId;
+
+    setTimeout(function(){
+      var isDisabled = currentInput.prop('disabled');
+      var content = currentInput.val();
+
+      if(!isDisabled && gPreviousContent != content){
+        delete gEmailIdNoteDict[messageId];//delete the prevoius note
+        sendBackgroundMessage({action:"post_note", email:email, messageId:messageId, 
+                     emailTitleSuffix: emailSubject,
+                     gdriveNoteId:noteId, 
+                     gdriveFolderId:folderId, content:content});
+      }
+      return true;
+    }, 200);  //save the note a bit later
   });
 
 
@@ -243,6 +253,8 @@ var setupNoteEditor = function(email, messageId){
               "<img title='Log Out' src='" + getIconBaseUrl() + "/logout.24.png'></a>" + 
               "<a class='sgn_open_options sgn_action'>" +
               "<img title='Preferences' src='" + getIconBaseUrl() + "/preferences.24.png'></a>" +
+              "<a class='sgn_action sgn_delete' target='_blank'>" +
+              "<img title='Delete' src='" + getIconBaseUrl() + "/delete.24.png'/></a> " +
               "<a class='sgn_action sgn_add_calendar' target='_blank'>" +
               "<img title='Add to Google Calendar' src='" + getIconBaseUrl() + "/calendar.24.png'/></a> " +
               "<a class='sgn_action sgn_search' target='_blank'>" +
@@ -291,7 +303,26 @@ var setupNoteEditor = function(email, messageId){
     $.each(classList, function(index, item){
       if(item != 'sgn_action'){  //for all other actions
           var action = item.substring(4);   //remove the 'sgn_' prefix
-          sendBackgroundMessage({action: action, email: email, messageId:messageId});
+          var request = {action: action, email: email, messageId:messageId, 
+                         gdriveNoteId:gCurrentGDriveNoteId};
+
+          if(action == "delete"){
+            if(!confirm("Are you sure you want to delete this note?"))
+              return;
+
+            $(".sgn_input:visible").val("");  //remove the note in text area
+            gPreviousContent = "";
+
+            //check if note exists
+            if(!gCurrentGDriveNoteId)
+              return;
+
+            delete gEmailIdNoteDict[messageId];//delete the prevoius note
+            gCurrentGDriveNoteId = "";
+          }
+
+
+          sendBackgroundMessage(request);
       }
     });
   });
@@ -430,6 +461,7 @@ var setupListeners = function(){
 
     //for add to calendar use
     gCurrentEmailSubject = e.detail.subject;
+    gCurrentMessageId = messageId;
   });
 
 
@@ -501,9 +533,19 @@ var setupListeners = function(){
         $("div.sgn").remove();  //clean up all those outdated div
         break;
       case "update_content":
-        gPreviousContent = request.content;
-        $(".sgn_input").val(request.content);
-        showLogoutPrompt(request.email);
+
+        if(request.messageId == gCurrentMessageId){
+          gPreviousContent = request.content;
+          var displayContent = request.content;
+          var warningMessage = SimpleGmailNotes.offlineMessage;
+          if(displayContent.indexOf(warningMessage) == 0){
+            displayContent = displayContent.substring(warningMessage.length); //truncate the warning message part
+          }
+          $(".sgn_input").val(displayContent);
+          showLogoutPrompt(request.email);
+        }
+
+
         break;
       case "update_gdrive_note_info":
         debugLog("Update google drive note info", 
@@ -587,6 +629,13 @@ var setupListeners = function(){
           $(".sgn_add_calendar").hide();
         }
 
+        var showDeleteButton = (preferences["showDelete"] !== "false");
+        if(!showDeleteButton){
+          $(".sgn_delete").hide();
+        }
+
+
+
         debugLog("@470", preferences);
         break;
       case "heart_beat_response":
@@ -618,6 +667,7 @@ var contentLoadDone = false;
 function setupPage(){
     addScript('lib/jquery-3.1.0.min.js');
     addScript('lib/gmail.js');
+    addScript('common/shared-common.js');
     addScript('common/page-common.js');
     addScript('page.js');
 }

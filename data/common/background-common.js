@@ -14,11 +14,11 @@
 
 
 /* global variables */
-var settings = {};  //to be overriden
+var settings = {};  //to be overridden
 
 var gPreferenceTypes = ["abstractStyle", "noteHeight", "fontColor", 
                         "backgroundColor", "notePosition", 
-                        "showConnectionPrompt", "showAddCalendar", 
+                        "showConnectionPrompt", "showAddCalendar", "showDelete",
                         "debugPageInfo", "debugContentInfo", "debugBackgroundInfo"];
 var gSgnEmtpy = "<SGN_EMPTY>";
 /* -- end -- */
@@ -140,6 +140,9 @@ var updateDefaultPreferences = function(preferences)
 
   if(isEmptyPrefernce(preferences["showAddCalendar"]))
     preferences["showAddCalendar"] = "true";
+
+  if(isEmptyPrefernce(preferences["showDelete"]))
+    preferences["showDelete"] = "true";
 
 
   return preferences;
@@ -405,7 +408,7 @@ var logoutGoogleDrive = function(sender){
   sendContentMessage(sender, {action:"disable_edit"});
 }
 
-var loadMessage = function(sender, gdriveNoteId){
+var loadMessage = function(sender, gdriveNoteId, messageId){
   sendAjax({
     type:"GET",
     headers: {
@@ -417,7 +420,7 @@ var loadMessage = function(sender, gdriveNoteId){
       debugLog("Loaded message", data);
       if(data == gSgnEmtpy)
         data = "";
-      sendContentMessage(sender, {action:"update_content", content:data});
+      sendContentMessage(sender, {action:"update_content", content:data, messageId:messageId, gdriveNoteId:gdriveNoteId});
       sendContentMessage(sender, {action:"enable_edit", 
                            gdriveEmail:getStorage(sender, "gdrive_email")});  
     },
@@ -536,7 +539,7 @@ var searchNote = function(sender, messageId){
                              gdriveFolderId:gdriveFolderId});
 
         if(gdriveNoteId){
-          loadMessage(sender, gdriveNoteId);
+          loadMessage(sender, gdriveNoteId, messageId);
         }
         else{//ready for write new message
           sendContentMessage(sender, {
@@ -696,6 +699,50 @@ var pullNotes = function(sender, pendingPullList){
 
 }
 
+var deleteNoteByNoteId = function(sender, messageId, gdriveNoteId){
+  executeIfValidToken(sender, function(data){
+    var deleteUrl =  "https://www.googleapis.com/drive/v2/files/" + gdriveNoteId + "/trash";
+    var methodType = "POST";
+
+    sendAjax({
+      type:methodType,
+      url:deleteUrl,
+      dataType: 'json',
+      contentType: "application/json",
+      headers: {
+          "Authorization": "Bearer " + getStorage(sender, "access_token")
+      },
+      success: function(data){
+        debugLog("message deleted successfully");
+        sendContentMessage(sender, {action:"revoke_summary_note", messageId: messageId});
+      },
+      error: function(data){
+        sendContentMessage(sender, {action:"show_error", 
+                                    type:"custom", 
+                                    message:"Faild delete message, error: " + 
+                                    JSON.stringify(data)});
+      }
+    });
+  });
+}
+
+var deleteNoteByMessageId = function(sender, messageId){
+  debugLog("Delete note for message", messageId);
+
+  gdriveQuery(sender, "title contains '" + messageId + "'",
+      function(data){ //success callback
+        for(var i=0; i<data.items.length; i++){
+          var item = data.items[i];
+          deleteNoteByNoteId(sender, messageId, item.id);
+        }
+      },
+      function(data){ //error backback
+        debugLog("@743, query failed", data);
+      }
+  );
+
+}
+
 //For messaging between background and content script
 var setupListeners = function(sender, request){
   debugLog("Request body:", request);
@@ -736,6 +783,9 @@ var setupListeners = function(sender, request){
     case "update_debug_content_info":
       var preferences = getPreferences();
       preferences["debugContentInfo"] = request.debugInfo;
+      break;
+    case "delete":
+      deleteNoteByMessageId(sender, request.messageId);
       break;
     default:
       debugLog("unknown request to background", request);

@@ -195,6 +195,7 @@ optionInit = function(){
 pageMod.PageMod({
   include: ["https://mail.google.com/*", "http://mail.google.com/*"],
   contentScriptFile: [self.data.url('lib/jquery-3.1.0.min.js'), 
+                      self.data.url('common/shared-common.js'),
                       self.data.url('common/content-common.js'),
                       self.data.url('content.js')],
   contentStyleFile: [self.data.url('css/style.css')],
@@ -205,6 +206,7 @@ pageMod.PageMod({
 pageMod.PageMod({
   include: self.data.url('options.html'),
   contentScriptFile: [ self.data.url("lib/jquery-3.1.0.min.js"),
+                        self.data.url('common/shared-common.js'),
                         self.data.url("lib/jquery.simple-color.js"),
                         self.data.url("common/options.js")],
   contentScriptWhen: 'end',  

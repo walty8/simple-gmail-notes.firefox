@@ -2,8 +2,8 @@ var gPreferenceTypes = ["abstractStyle", "noteHeight", "fontColor",
                         "backgroundColor", "fontSize", "abstractFontColor", 
                         "abstractBackgroundColor", "abstractFontSize", 
                         "notePosition", "showConnectionPrompt", 
-                        "showAddCalendar", "debugPageInfo",
-                        "debugContentInfo", "debugBackgroundInfo"];
+                        "showAddCalendar", "showDelete",
+                        "debugPageInfo", "debugContentInfo", "debugBackgroundInfo"];
 
 function isChrome(){
    return /chrom(e|ium)/.test(navigator.userAgent.toLowerCase());
@@ -77,6 +77,7 @@ function savePreferences() {
   preferences["notePosition"] = $("#note_position").val();
   preferences["showConnectionPrompt"] = String($("#show_connection_prompt").is(":checked"));
   preferences["showAddCalendar"] = String($("#show_add_calendar").is(":checked"));
+  preferences["showDelete"] = String($("#show_delete").is(":checked"));
 
   pushPreferences(preferences);
 
@@ -134,6 +135,9 @@ function updateControls(preferences){
   var showAddCalendar = (preferences["showAddCalendar"] !== "false");
   $("#show_add_calendar").prop("checked", showAddCalendar);
 
+  var showDelete = (preferences["showDelete"] !== "false");
+  $("#show_delete").prop("checked", showDelete);
+
   $("#debug_page_info").text(String(preferences["debugPageInfo"]));
   $("#debug_content_info").text(String(preferences["debugContentInfo"]));
   $("#debug_background_info").text(String(preferences["debugBackgroundInfo"]));
@@ -141,11 +145,11 @@ function updateControls(preferences){
 
 
 function initPreferences(){
-  for(var i=2; i<=30; i++){
+  for(var i=2; i<=50; i++){
     $("#abstract_style").append("<option value=" + i + ">First " + i + " Characters</option>");
   }
 
-  for(var i=1; i<=8; i++){
+  for(var i=1; i<=16; i++){
     $("#note_height").append("<option>" + i + "</option>");
   }
 
